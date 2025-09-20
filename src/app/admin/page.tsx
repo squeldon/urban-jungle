@@ -9,14 +9,11 @@ function Page() {
   const { user } = useAuthContext() as { user: any }; // Use 'as' to assert the type as { user: any }
   const router = useRouter();
 
-  useEffect(() => {
-    // Redirect to the home page if the user is not logged in
-    if (user == null) {
-      router.push("/");
-    }
-    // }, [ user ] );
-  }, [user, router]); // Include 'router' in the dependency array to resolve eslint warning
-
+  if (user == null) {
+    return (
+    <h1>Not logged in</h1>);
+  }
+  
   return (
     <h1>Only logged-in users can view this page</h1>
   );

@@ -1,7 +1,6 @@
 'use client'
 import { useAuthContext } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 function Page() {
   // Access the user object from the authentication context
@@ -13,7 +12,7 @@ function Page() {
     return (
     <h1>Not logged in</h1>);
   }
-  
+
   return (
     <h1>Only logged-in users can view this page</h1>
   );

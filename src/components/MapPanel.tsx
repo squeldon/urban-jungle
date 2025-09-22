@@ -1,38 +1,14 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface MapPanelProps {
   isOpen: boolean;
   hasActiveFilters?: boolean;
+  headerHeight: number;
 }
 
-export default function MapPanel({ isOpen, hasActiveFilters = false }: MapPanelProps) {
+export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight }: MapPanelProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(80); // Default fallback
-
-  // Dynamically measure header height
-  useEffect(() => {
-    const measureHeaderHeight = () => {
-      const header = document.querySelector('header');
-      if (header) {
-        const rect = header.getBoundingClientRect();
-        setHeaderHeight(rect.height);
-      }
-    };
-
-    // Measure initially
-    measureHeaderHeight();
-
-    // Measure on window resize
-    window.addEventListener('resize', measureHeaderHeight);
-    
-    // Also measure when hasActiveFilters changes (header height changes)
-    measureHeaderHeight();
-
-    return () => {
-      window.removeEventListener('resize', measureHeaderHeight);
-    };
-  }, [hasActiveFilters]); // Re-run when filter state changes
 
   const handleFullscreenToggle = () => {
     setIsFullscreen(!isFullscreen);

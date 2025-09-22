@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from 'react';
 import { FilterState } from '@/hooks/useFilters';
 
 interface FilterPopupProps {
@@ -18,6 +19,20 @@ export default function FilterPopup({
   onToggleArrayFilter,
   onResetFilters,
 }: FilterPopupProps) {
+  // Prevent body scroll when popup is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    // Cleanup function to restore scroll when component unmounts
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -29,7 +44,7 @@ export default function FilterPopup({
       ></div>
 
       {/* Filter Popup */}
-      <div className="fixed top-[53%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-[600px] max-w-[90vw] max-h-[80vh] overflow-y-auto">
+      <div className="fixed top-[53%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-[600px] max-w-[90vw] h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             Filter Properties
@@ -44,7 +59,7 @@ export default function FilterPopup({
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-6">
           {/* Price Range */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">

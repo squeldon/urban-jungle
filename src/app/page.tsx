@@ -90,9 +90,7 @@ export default function Home() {
       {/* Main content area below header */}
       <div className={`flex flex-1 h-screen ${getActiveFilters().length > 0 ? 'pt-32' : 'pt-20'}`}>
         {/* Main Content */}
-        <main className={`flex flex-col items-center justify-between p-24 relative transition-all duration-300 ease-in-out overflow-y-auto ${
-          showMapPanel ? 'w-1/2' : 'w-full'
-        }`}>
+        <main className="flex flex-col items-center justify-between p-24 relative transition-all duration-300 ease-in-out overflow-y-auto">
           
           <AuthPopup 
             isOpen={showAuthPopup} 
@@ -212,7 +210,7 @@ export default function Home() {
       </div>
     </main>
 
-      <MapPanel isOpen={showMapPanel} />
+      <MapPanel isOpen={showMapPanel} hasActiveFilters={getActiveFilters().length > 0} />
       </div>
     </div>
   )

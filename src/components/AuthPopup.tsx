@@ -174,7 +174,7 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
             </button>
             
             <div className="text-center">
-              <span className="text-gray-600 dark:text-gray-400">Don't have an account? </span>
+              <span className="text-gray-600 dark:text-gray-400">Don&apos;t have an account? </span>
               <button
                 onClick={() => {
                   setStep('signup');

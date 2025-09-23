@@ -47,7 +47,7 @@ export interface PropertyListing {
   createdBy: string; // User ID of the person who created the listing
   createdAt: Date;
   updatedAt: Date;
-  status: 'active' | 'pending' | 'sold' | 'rented' | 'withdrawn';
+  status: 'active' | 'inactive' | 'pending' | 'sold' | 'rented' | 'withdrawn';
   isVerified: boolean;
   
   // Contact information

@@ -15,7 +15,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showMapPanel, setShowMapPanel] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
-  const [squareSize, setSquareSize] = useState(120); // Default square size
+  const [squareSize, setSquareSize] = useState(265); // Default medium square size
   
   const { user } = useAuthContext() as { user: any };
   const router = useRouter();

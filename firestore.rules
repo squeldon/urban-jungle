@@ -4,15 +4,15 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Rules for property listings
     match /listings/{listingId} {
-      // Anyone can read active listings (for browsing)
-      allow read: if resource.data.status == 'active' || 
+      // Anyone can read public listings (active, pending, sold, rented) or owners can read all their listings
+      allow read: if resource.data.status in ['active', 'pending', 'sold', 'rented'] || 
                      (request.auth != null && request.auth.uid == resource.data.createdBy);
       
       // Only authenticated users can create listings
       allow create: if request.auth != null && 
                        request.auth.uid == request.resource.data.createdBy &&
                        request.resource.data.keys().hasAll(['title', 'description', 'price', 'propertyType', 'listingType', 'address', 'contactInfo', 'createdBy', 'createdAt', 'updatedAt', 'status']) &&
-                       request.resource.data.status == 'active' &&
+                       request.resource.data.status in ['active', 'inactive', 'pending', 'sold', 'rented', 'withdrawn'] &&
                        request.resource.data.views == 0 &&
                        request.resource.data.favorites.size() == 0;
       
@@ -21,17 +21,17 @@ service cloud.firestore {
                        request.auth.uid == resource.data.createdBy &&
                        // Prevent updating createdBy, createdAt fields
                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdAt']) &&
-                       // Ensure updatedAt is updated
-                       request.resource.data.updatedAt == request.time;
+                       // Ensure updatedAt is present and is a timestamp
+                       request.resource.data.updatedAt is timestamp;
       
-      // Allow anyone to increment view count
-      allow update: if resource.data.status == 'active' &&
+      // Allow anyone to increment view count for public listings
+      allow update: if resource.data.status in ['active', 'pending', 'sold', 'rented'] &&
                        request.resource.data.diff(resource.data).affectedKeys() == ['views'].toSet() &&
                        request.resource.data.views == resource.data.views + 1;
       
-      // Allow authenticated users to add/remove themselves from favorites
+      // Allow authenticated users to add/remove themselves from favorites for public listings
       allow update: if request.auth != null &&
-                       resource.data.status == 'active' &&
+                       resource.data.status in ['active', 'pending', 'sold', 'rented'] &&
                        request.resource.data.diff(resource.data).affectedKeys() == ['favorites'].toSet() &&
                        (
                          // Adding themselves to favorites

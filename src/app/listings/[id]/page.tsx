@@ -211,49 +211,49 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
 
               {/* Price Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                  <div className="flex items-center mb-2">
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg flex flex-col aspect-[5/4]">
+                  <div className="flex items-center mb-auto">
                     <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
                     <span className="text-sm font-medium text-green-600 dark:text-green-400">Asking Price</span>
                   </div>
-                  <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                    {formatPrice(listing.price)}
-                  </p>
+                    <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                      {formatPrice(listing.price)}
+                    </p>
                 </div>
 
                 {listing.arv && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                    <div className="flex items-center mb-2">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex flex-col aspect-[5/4]">
+                    <div className="flex items-center mb-auto">
                       <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
                       <span className="text-sm font-medium text-blue-600 dark:text-blue-400">ARV</span>
                     </div>
-                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                      {formatPrice(listing.arv)}
-                    </p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                        {formatPrice(listing.arv)}
+                      </p>
                   </div>
                 )}
 
                 {listing.repairCosts && (
-                  <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-                    <div className="flex items-center mb-2">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg flex flex-col aspect-[5/4]">
+                    <div className="flex items-center mb-auto">
                       <Wrench className="w-5 h-5 text-orange-600 dark:text-orange-400 mr-2" />
                       <span className="text-sm font-medium text-orange-600 dark:text-orange-400">Repair Costs</span>
                     </div>
-                    <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                      {formatPrice(listing.repairCosts)}
-                    </p>
+                      <p className="text-lg font-bold text-orange-700 dark:text-orange-300">
+                        {formatPrice(listing.repairCosts)}
+                      </p>
                   </div>
                 )}
 
                 {listing.wholesaleFee && (
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                    <div className="flex items-center mb-2">
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg flex flex-col aspect-[5/4]">
+                    <div className="flex items-center mb-auto">
                       <Star className="w-5 h-5 text-purple-600 dark:text-purple-400 mr-2" />
                       <span className="text-sm font-medium text-purple-600 dark:text-purple-400">Wholesale Fee</span>
                     </div>
-                    <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                      {formatPrice(listing.wholesaleFee)}
-                    </p>
+                      <p className="text-lg  font-bold text-purple-700 dark:text-purple-300">
+                        {formatPrice(listing.wholesaleFee)}
+                      </p>
                   </div>
                 )}
               </div>
@@ -410,7 +410,7 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
           {/* Right Column - Contact Info */}
           <div className="space-y-6">
             {/* Contact Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 sticky top-8">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Contact Information</h3>
               
               <div className="space-y-4">

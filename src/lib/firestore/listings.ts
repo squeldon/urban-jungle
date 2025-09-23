@@ -27,23 +27,23 @@ const db = getFirestore(firebase_app);
 const LISTINGS_COLLECTION = 'listings';
 
 // Helper function to convert Firestore timestamp to Date
-const convertTimestamps = (data: DocumentData): PropertyListing => {
+const convertTimestamps = (data: DocumentData): Omit<PropertyListing, 'id'> => {
+  const { id, ...cleanData } = data;
   return {
-    ...data,
+    ...cleanData,
     createdAt: data.createdAt?.toDate() || new Date(),
     updatedAt: data.updatedAt?.toDate() || new Date(),
-  } as PropertyListing;
+  } as Omit<PropertyListing, 'id'>;
 };
 
 // Create a new listing
 export async function createListing(listingData: CreateListingData, userId: string): Promise<string> {
   try {
-    const now = new Date();
     const newListing = {
       ...listingData,
       createdBy: userId,
-      createdAt: Timestamp.fromDate(now),
-      updatedAt: Timestamp.fromDate(now),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
       views: 0,
       favorites: [],
       isVerified: false,
@@ -136,8 +136,8 @@ export async function getListings(
       }
     }
     
-    // Add status filter to only show active listings
-    q = query(q, where('status', '==', 'active'));
+    // Add status filter to only show active listings (exclude inactive and withdrawn)
+    q = query(q, where('status', 'in', ['active', 'pending', 'sold', 'rented']));
     
     // Order by creation date (newest first)
     q = query(q, orderBy('createdAt', 'desc'));
@@ -207,7 +207,7 @@ export async function getListings(
         // Filter by financing options
         if (filters.financingOptions && filters.financingOptions.length > 0) {
           if (!listing.dealTerms?.financingOptions || 
-              !filters.financingOptions.some(option => listing.dealTerms?.financingOptions?.includes(option))) {
+              !filters.financingOptions.some(option => listing.dealTerms?.financingOptions?.includes(option as any))) {
             return false;
           }
         }
@@ -262,7 +262,7 @@ export async function getUserListings(userId: string): Promise<PropertyListing[]
   } catch (error) {
     console.error('Error getting user listings:', error);
     throw new Error('Failed to get user listings');
-  }
+   }
 }
 
 // Update a listing
@@ -287,7 +287,7 @@ export async function updateListing(
     
     const updatedData = {
       ...updateData,
-      updatedAt: Timestamp.fromDate(new Date()),
+      updatedAt: Timestamp.now(),
     };
     
     await updateDoc(docRef, updatedData);
@@ -359,7 +359,7 @@ export async function getFavoriteListings(userId: string): Promise<PropertyListi
     const q = query(
       collection(db, LISTINGS_COLLECTION),
       where('favorites', 'array-contains', userId),
-      where('status', '==', 'active'),
+      where('status', 'in', ['active', 'pending', 'sold', 'rented']),
       orderBy('createdAt', 'desc')
     );
     
@@ -392,7 +392,7 @@ export async function searchListings(
     const q = query(
       collection(db, LISTINGS_COLLECTION),
       where('tags', 'array-contains-any', searchTerm.toLowerCase().split(' ')),
-      where('status', '==', 'active'),
+      where('status', 'in', ['active', 'pending', 'sold', 'rented']),
       orderBy('createdAt', 'desc'),
       limit(pageSize)
     );

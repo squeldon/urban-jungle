@@ -80,19 +80,19 @@ export default function Header({
     </div>
   );
 
-  const renderCheckboxDropdown = (filterKey: string, label: string, options: string[]) => (
+  const renderCheckboxDropdown = (filterKey: string, label: string, options: { value: string; label: string }[]) => (
     <div className="absolute top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[250px] max-w-[300px] z-50">
       <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{label}</div>
       <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
         {options.map((option) => (
-          <label key={option} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
+          <label key={option.value} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
             <input
               type="checkbox"
-              checked={(filters[filterKey as keyof FilterState] as string[]).includes(option)}
-              onChange={() => onToggleArrayFilter(filterKey, option)}
+              checked={(filters[filterKey as keyof FilterState] as string[]).includes(option.value)}
+              onChange={() => onToggleArrayFilter(filterKey, option.value)}
               className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">{option}</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
           </label>
         ))}
       </div>
@@ -105,10 +105,10 @@ export default function Header({
         return renderRangeDropdown('price', 'Price Range', 'priceMin', 'priceMax');
       case 'arv':
         return renderRangeDropdown('arv', 'ARV Range', 'arvMin', 'arvMax');
-      case 'repair':
-        return renderRangeDropdown('repair', 'Repair Estimates', 'repairMin', 'repairMax');
-      case 'sqft':
-        return renderRangeDropdown('sqft', 'Square Footage', 'sqftMin', 'sqftMax');
+      case 'repairCosts':
+        return renderRangeDropdown('repairCosts', 'Repair Estimates', 'repairCostsMin', 'repairCostsMax');
+      case 'squareFeet':
+        return renderRangeDropdown('squareFeet', 'Square Footage', 'squareFeetMin', 'squareFeetMax');
       case 'bedrooms':
         return renderSelectDropdown('bedrooms', 'Bedrooms', [
           { value: '', label: 'Any' },
@@ -128,17 +128,47 @@ export default function Header({
           { value: '3', label: '3+' }
         ]);
       case 'propertyTypes':
-        return renderCheckboxDropdown('propertyTypes', 'Property Types', 
-          ['Single Family', 'Multi-Family', 'Townhouse', 'Condo', 'Mobile Home', 'Land']
-        );
-      case 'dealQualities':
-        return renderCheckboxDropdown('dealQualities', 'Deal Quality', 
-          ['Great Deal', 'Good Deal', 'Fair Deal']
-        );
+        return renderCheckboxDropdown('propertyTypes', 'Property Types', [
+          { value: 'house', label: 'Single Family House' },
+          { value: 'duplex', label: 'Duplex' },
+          { value: 'triplex', label: 'Triplex' },
+          { value: 'fourplex', label: 'Fourplex' },
+          { value: 'townhouse', label: 'Townhouse' },
+          { value: 'condo', label: 'Condo' },
+          { value: 'apartment', label: 'Apartment' },
+          { value: 'land', label: 'Land' },
+          { value: 'commercial', label: 'Commercial' }
+        ]);
+      case 'listingTypes':
+        return renderCheckboxDropdown('listingTypes', 'Listing Types', [
+          { value: 'wholesale', label: 'Wholesale Deal' },
+          { value: 'sale', label: 'For Sale' },
+          { value: 'rent', label: 'For Rent' }
+        ]);
       case 'propertyConditions':
-        return renderCheckboxDropdown('propertyConditions', 'Property Condition', 
-          ['Move-in Ready', 'Cosmetic Repairs', 'Major Repairs', 'Tear Down']
-        );
+        return renderCheckboxDropdown('propertyConditions', 'Property Condition', [
+          { value: 'excellent', label: 'Excellent' },
+          { value: 'good', label: 'Good' },
+          { value: 'fair', label: 'Fair' },
+          { value: 'needs-cosmetic', label: 'Needs Cosmetic Work' },
+          { value: 'needs-full-rehab', label: 'Needs Full Rehab' },
+          { value: 'tear-down', label: 'Tear Down' }
+        ]);
+      case 'occupancyStatuses':
+        return renderCheckboxDropdown('occupancyStatuses', 'Occupancy Status', [
+          { value: 'vacant', label: 'Vacant' },
+          { value: 'owner-occupied', label: 'Owner Occupied' },
+          { value: 'tenant-occupied', label: 'Tenant Occupied' },
+          { value: 'partially-occupied', label: 'Partially Occupied' }
+        ]);
+      case 'financingOptions':
+        return renderCheckboxDropdown('financingOptions', 'Financing Options', [
+          { value: 'cash-only', label: 'Cash Only' },
+          { value: 'seller-financing', label: 'Seller Financing' },
+          { value: 'hard-money', label: 'Hard Money' },
+          { value: 'conventional', label: 'Conventional' },
+          { value: 'private-money', label: 'Private Money' }
+        ]);
       default:
         return null;
     }

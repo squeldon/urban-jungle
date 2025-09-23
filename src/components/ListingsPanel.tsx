@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useListings } from '@/hooks/useListings';
 import { useAuthContext } from '@/context/AuthContext';
-import { PropertyListing } from '@/types/listing';
+import { PropertyListing, ListingFilters } from '@/types/listing';
 import { getFileTypeFromUrl } from '@/lib/firebase/storage';
 import { Heart, Eye, MapPin, Home, Calendar, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 
@@ -11,7 +11,7 @@ interface ListingsPanelProps {
   isMapOpen: boolean;
   squareSize: number;
   headerHeight: number;
-  filters?: any; // You can type this better based on your existing filter types
+  filters?: ListingFilters;
 }
 
 export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, filters }: ListingsPanelProps) {

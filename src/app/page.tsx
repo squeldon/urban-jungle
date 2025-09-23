@@ -28,6 +28,7 @@ export default function Home() {
     clearFilter,
     getActiveFilters,
     resetAllFilters,
+    getListingFilters,
   } = useFilters();
 
   // Check authentication status on component mount and user changes
@@ -109,6 +110,7 @@ export default function Home() {
           showMapPanel={showMapPanel}
           activeFiltersCount={getActiveFilters().length}
           squareSize={squareSize}
+          filters={getListingFilters()}
         />
       </main>
     </div>

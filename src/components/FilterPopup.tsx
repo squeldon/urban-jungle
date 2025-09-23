@@ -117,16 +117,16 @@ export default function FilterPopup({
               <input
                 type="number"
                 placeholder="Min Repairs"
-                value={filters.repairMin}
-                onChange={(e) => onUpdateFilter('repairMin', e.target.value)}
+                value={filters.repairCostsMin}
+                onChange={(e) => onUpdateFilter('repairCostsMin', e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
               <span className="text-gray-500 dark:text-gray-400">to</span>
               <input
                 type="number"
                 placeholder="Max Repairs"
-                value={filters.repairMax}
-                onChange={(e) => onUpdateFilter('repairMax', e.target.value)}
+                value={filters.repairCostsMax}
+                onChange={(e) => onUpdateFilter('repairCostsMax', e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -138,15 +138,19 @@ export default function FilterPopup({
               Listing Type
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {['Wholesale', 'For Sale', 'For Rent'].map((type) => (
-                <label key={type} className="flex items-center space-x-2 cursor-pointer">
+              {[
+                { value: 'wholesale', label: 'Wholesale Deal' },
+                { value: 'sale', label: 'For Sale' },
+                { value: 'rent', label: 'For Rent' }
+              ].map((type) => (
+                <label key={type.value} className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={filters.listingTypes.includes(type)}
-                    onChange={() => onToggleArrayFilter('listingTypes', type)}
+                    checked={filters.listingTypes.includes(type.value)}
+                    onChange={() => onToggleArrayFilter('listingTypes', type.value)}
                     className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{type}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{type.label}</span>
                 </label>
               ))}
             </div>
@@ -158,15 +162,25 @@ export default function FilterPopup({
               Property Type
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {['Single Family House', 'Duplex', 'Triplex', 'Fourplex', 'Townhouse', 'Condo', 'Apartment', 'Land', 'Commercial'].map((type) => (
-                <label key={type} className="flex items-center space-x-2 cursor-pointer">
+              {[
+                { value: 'house', label: 'Single Family House' },
+                { value: 'duplex', label: 'Duplex' },
+                { value: 'triplex', label: 'Triplex' },
+                { value: 'fourplex', label: 'Fourplex' },
+                { value: 'townhouse', label: 'Townhouse' },
+                { value: 'condo', label: 'Condo' },
+                { value: 'apartment', label: 'Apartment' },
+                { value: 'land', label: 'Land' },
+                { value: 'commercial', label: 'Commercial' }
+              ].map((type) => (
+                <label key={type.value} className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={filters.propertyTypes.includes(type)}
-                    onChange={() => onToggleArrayFilter('propertyTypes', type)}
+                    checked={filters.propertyTypes.includes(type.value)}
+                    onChange={() => onToggleArrayFilter('propertyTypes', type.value)}
                     className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{type}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{type.label}</span>
                 </label>
               ))}
             </div>
@@ -220,16 +234,16 @@ export default function FilterPopup({
               <input
                 type="number"
                 placeholder="Min Sq Ft"
-                value={filters.sqftMin}
-                onChange={(e) => onUpdateFilter('sqftMin', e.target.value)}
+                value={filters.squareFeetMin}
+                onChange={(e) => onUpdateFilter('squareFeetMin', e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
               <span className="text-gray-500 dark:text-gray-400">to</span>
               <input
                 type="number"
                 placeholder="Max Sq Ft"
-                value={filters.sqftMax}
-                onChange={(e) => onUpdateFilter('sqftMax', e.target.value)}
+                value={filters.squareFeetMax}
+                onChange={(e) => onUpdateFilter('squareFeetMax', e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -241,15 +255,22 @@ export default function FilterPopup({
               Property Condition
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {['Excellent', 'Good', 'Fair', 'Needs Cosmetic Work', 'Needs Full Rehab', 'Tear Down'].map((condition) => (
-                <label key={condition} className="flex items-center space-x-2 cursor-pointer">
+              {[
+                { value: 'excellent', label: 'Excellent' },
+                { value: 'good', label: 'Good' },
+                { value: 'fair', label: 'Fair' },
+                { value: 'needs-cosmetic', label: 'Needs Cosmetic Work' },
+                { value: 'needs-full-rehab', label: 'Needs Full Rehab' },
+                { value: 'tear-down', label: 'Tear Down' }
+              ].map((condition) => (
+                <label key={condition.value} className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={filters.propertyConditions.includes(condition)}
-                    onChange={() => onToggleArrayFilter('propertyConditions', condition)}
+                    checked={filters.propertyConditions.includes(condition.value)}
+                    onChange={() => onToggleArrayFilter('propertyConditions', condition.value)}
                     className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{condition}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{condition.label}</span>
                 </label>
               ))}
             </div>
@@ -261,15 +282,20 @@ export default function FilterPopup({
               Occupancy Status
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {['Vacant', 'Owner Occupied', 'Tenant Occupied', 'Partially Occupied'].map((status) => (
-                <label key={status} className="flex items-center space-x-2 cursor-pointer">
+              {[
+                { value: 'vacant', label: 'Vacant' },
+                { value: 'owner-occupied', label: 'Owner Occupied' },
+                { value: 'tenant-occupied', label: 'Tenant Occupied' },
+                { value: 'partially-occupied', label: 'Partially Occupied' }
+              ].map((status) => (
+                <label key={status.value} className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={filters.occupancyStatuses.includes(status)}
-                    onChange={() => onToggleArrayFilter('occupancyStatuses', status)}
+                    checked={filters.occupancyStatuses.includes(status.value)}
+                    onChange={() => onToggleArrayFilter('occupancyStatuses', status.value)}
                     className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{status}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{status.label}</span>
                 </label>
               ))}
             </div>
@@ -281,15 +307,21 @@ export default function FilterPopup({
               Financing Options
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {['Cash Only', 'Seller Financing', 'Hard Money', 'Conventional', 'Private Money'].map((option) => (
-                <label key={option} className="flex items-center space-x-2 cursor-pointer">
+              {[
+                { value: 'cash-only', label: 'Cash Only' },
+                { value: 'seller-financing', label: 'Seller Financing' },
+                { value: 'hard-money', label: 'Hard Money' },
+                { value: 'conventional', label: 'Conventional' },
+                { value: 'private-money', label: 'Private Money' }
+              ].map((option) => (
+                <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={filters.financingOptions.includes(option)}
-                    onChange={() => onToggleArrayFilter('financingOptions', option)}
+                    checked={filters.financingOptions.includes(option.value)}
+                    onChange={() => onToggleArrayFilter('financingOptions', option.value)}
                     className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{option}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
                 </label>
               ))}
             </div>

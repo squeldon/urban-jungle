@@ -420,7 +420,7 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
               </div>
 
               {/* Property Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 {listing.bedrooms && (
                   <div className="text-center">
                     <Bed className="w-6 h-6 text-gray-400 mx-auto mb-2" />
@@ -442,6 +442,14 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
                     <Square className="w-6 h-6 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600 dark:text-gray-400">Square Feet</p>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">{listing.squareFeet.toLocaleString()}</p>
+                  </div>
+                )}
+
+                {listing.lotSize && (
+                  <div className="text-center">
+                    <Car className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Lot Size</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{listing.lotSize.toLocaleString()} sq ft</p>
                   </div>
                 )}
 
@@ -557,6 +565,72 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
                       <p className="text-gray-900 dark:text-white">{listing.dealTerms.accessRestrictions}</p>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Comparable Sales */}
+            {listing.comps && listing.comps.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comparable Sales</h3>
+                <div className="space-y-4">
+                  {listing.comps.map((comp, index) => (
+                    <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                            {comp.address}
+                          </h4>
+                          <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                            {formatPrice(comp.salePrice)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Sold: {new Date(comp.saleDate).toLocaleDateString()}
+                          </p>
+                          {comp.distanceFromSubject && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {comp.distanceFromSubject} miles away
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                        {comp.squareFeet && (
+                          <div className="text-center bg-gray-50 dark:bg-gray-700 rounded p-2">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Square Feet</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">{comp.squareFeet.toLocaleString()}</p>
+                          </div>
+                        )}
+                        {comp.bedrooms && (
+                          <div className="text-center bg-gray-50 dark:bg-gray-700 rounded p-2">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Bedrooms</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">{comp.bedrooms}</p>
+                          </div>
+                        )}
+                        {comp.bathrooms && (
+                          <div className="text-center bg-gray-50 dark:bg-gray-700 rounded p-2">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Bathrooms</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">{comp.bathrooms}</p>
+                          </div>
+                        )}
+                        {comp.daysonMarket && (
+                          <div className="text-center bg-gray-50 dark:bg-gray-700 rounded p-2">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Days on Market</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">{comp.daysonMarket}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {comp.notes && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                          <p className="text-sm text-blue-800 dark:text-blue-200">{comp.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

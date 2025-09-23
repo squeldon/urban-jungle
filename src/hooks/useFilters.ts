@@ -1,17 +1,18 @@
 import { useState } from 'react';
+import { ListingFilters } from '@/types/listing';
 
 export interface FilterState {
   priceMin: string;
   priceMax: string;
   arvMin: string;
   arvMax: string;
-  repairMin: string;
-  repairMax: string;
+  repairCostsMin: string;
+  repairCostsMax: string;
   propertyTypes: string[];
   bedrooms: string;
   bathrooms: string;
-  sqftMin: string;
-  sqftMax: string;
+  squareFeetMin: string;
+  squareFeetMax: string;
   listingTypes: string[];
   propertyConditions: string[];
   occupancyStatuses: string[];
@@ -30,13 +31,13 @@ export const useFilters = () => {
     priceMax: '',
     arvMin: '',
     arvMax: '',
-    repairMin: '',
-    repairMax: '',
+    repairCostsMin: '',
+    repairCostsMax: '',
     propertyTypes: [],
     bedrooms: '',
     bathrooms: '',
-    sqftMin: '',
-    sqftMax: '',
+    squareFeetMin: '',
+    squareFeetMax: '',
     listingTypes: [],
     propertyConditions: [],
     occupancyStatuses: [],
@@ -65,9 +66,9 @@ export const useFilters = () => {
     } else if (key.includes('arv') || key.includes('ARV')) {
       setFilters(prev => ({ ...prev, arvMin: '', arvMax: '' }));
     } else if (key.includes('repair') || key.includes('Repair')) {
-      setFilters(prev => ({ ...prev, repairMin: '', repairMax: '' }));
-    } else if (key.includes('sqft') || key.includes('Sqft')) {
-      setFilters(prev => ({ ...prev, sqftMin: '', sqftMax: '' }));
+      setFilters(prev => ({ ...prev, repairCostsMin: '', repairCostsMax: '' }));
+    } else if (key.includes('squareFeet') || key.includes('Sqft')) {
+      setFilters(prev => ({ ...prev, squareFeetMin: '', squareFeetMax: '' }));
     } else {
       setFilters(prev => ({ ...prev, [key]: '' }));
     }
@@ -90,18 +91,18 @@ export const useFilters = () => {
       if (range) active.push({ key: 'arv', label: `ARV: ${range}`, type: 'range' });
     }
     
-    if (filters.repairMin || filters.repairMax) {
-      const min = filters.repairMin ? `$${parseInt(filters.repairMin).toLocaleString()}` : '';
-      const max = filters.repairMax ? `$${parseInt(filters.repairMax).toLocaleString()}` : '';
+    if (filters.repairCostsMin || filters.repairCostsMax) {
+      const min = filters.repairCostsMin ? `$${parseInt(filters.repairCostsMin).toLocaleString()}` : '';
+      const max = filters.repairCostsMax ? `$${parseInt(filters.repairCostsMax).toLocaleString()}` : '';
       const range = min && max ? `${min}-${max}` : min || max || '';
-      if (range) active.push({ key: 'repair', label: `Repairs: ${range}`, type: 'range' });
+      if (range) active.push({ key: 'repairCosts', label: `Repairs: ${range}`, type: 'range' });
     }
     
-    if (filters.sqftMin || filters.sqftMax) {
-      const min = filters.sqftMin ? `${parseInt(filters.sqftMin).toLocaleString()}` : '';
-      const max = filters.sqftMax ? `${parseInt(filters.sqftMax).toLocaleString()}` : '';
+    if (filters.squareFeetMin || filters.squareFeetMax) {
+      const min = filters.squareFeetMin ? `${parseInt(filters.squareFeetMin).toLocaleString()}` : '';
+      const max = filters.squareFeetMax ? `${parseInt(filters.squareFeetMax).toLocaleString()}` : '';
       const range = min && max ? `${min}-${max}` : min || max || '';
-      if (range) active.push({ key: 'sqft', label: `Sqft: ${range}`, type: 'range' });
+      if (range) active.push({ key: 'squareFeet', label: `Sqft: ${range}`, type: 'range' });
     }
     
     if (filters.bedrooms) {
@@ -162,18 +163,103 @@ export const useFilters = () => {
       priceMax: '',
       arvMin: '',
       arvMax: '',
-      repairMin: '',
-      repairMax: '',
+      repairCostsMin: '',
+      repairCostsMax: '',
       propertyTypes: [],
       bedrooms: '',
       bathrooms: '',
-      sqftMin: '',
-      sqftMax: '',
+      squareFeetMin: '',
+      squareFeetMax: '',
       listingTypes: [],
       propertyConditions: [],
       occupancyStatuses: [],
       financingOptions: [],
     });
+  };
+
+  const getListingFilters = (): ListingFilters | undefined => {
+    const hasActiveFilters = filters.priceMin || filters.priceMax || filters.arvMin || filters.arvMax ||
+      filters.repairCostsMin || filters.repairCostsMax || filters.propertyTypes.length > 0 ||
+      filters.bedrooms || filters.bathrooms || filters.squareFeetMin || filters.squareFeetMax ||
+      filters.listingTypes.length > 0 || filters.propertyConditions.length > 0 ||
+      filters.occupancyStatuses.length > 0 || filters.financingOptions.length > 0;
+
+    if (!hasActiveFilters) return undefined;
+
+    const listingFilters: ListingFilters = {};
+
+    // Price range
+    if (filters.priceMin || filters.priceMax) {
+      listingFilters.priceRange = {
+        min: filters.priceMin ? parseInt(filters.priceMin) : 0,
+        max: filters.priceMax ? parseInt(filters.priceMax) : Number.MAX_SAFE_INTEGER,
+      };
+    }
+
+    // ARV range
+    if (filters.arvMin || filters.arvMax) {
+      listingFilters.arvRange = {
+        min: filters.arvMin ? parseInt(filters.arvMin) : 0,
+        max: filters.arvMax ? parseInt(filters.arvMax) : Number.MAX_SAFE_INTEGER,
+      };
+    }
+
+    // Repair costs range
+    if (filters.repairCostsMin || filters.repairCostsMax) {
+      listingFilters.repairCostsRange = {
+        min: filters.repairCostsMin ? parseInt(filters.repairCostsMin) : 0,
+        max: filters.repairCostsMax ? parseInt(filters.repairCostsMax) : Number.MAX_SAFE_INTEGER,
+      };
+    }
+
+    // Square feet range
+    if (filters.squareFeetMin || filters.squareFeetMax) {
+      listingFilters.squareFeet = {
+        min: filters.squareFeetMin ? parseInt(filters.squareFeetMin) : 0,
+        max: filters.squareFeetMax ? parseInt(filters.squareFeetMax) : Number.MAX_SAFE_INTEGER,
+      };
+    }
+
+    // Bedrooms range
+    if (filters.bedrooms) {
+      const bedroomNum = parseInt(filters.bedrooms);
+      listingFilters.bedrooms = {
+        min: bedroomNum,
+        max: Number.MAX_SAFE_INTEGER,
+      };
+    }
+
+    // Bathrooms range
+    if (filters.bathrooms) {
+      const bathroomNum = parseFloat(filters.bathrooms);
+      listingFilters.bathrooms = {
+        min: bathroomNum,
+        max: Number.MAX_SAFE_INTEGER,
+      };
+    }
+
+    // Array filters
+    if (filters.propertyTypes.length > 0) {
+      listingFilters.propertyType = filters.propertyTypes;
+    }
+
+    if (filters.listingTypes.length > 0 && filters.listingTypes.length === 1) {
+      listingFilters.listingType = filters.listingTypes[0] as 'wholesale' | 'sale' | 'rent';
+    }
+
+    if (filters.propertyConditions.length > 0) {
+      listingFilters.propertyCondition = filters.propertyConditions;
+    }
+
+    if (filters.occupancyStatuses.length > 0) {
+      listingFilters.occupancyStatus = filters.occupancyStatuses;
+    }
+
+    if (filters.financingOptions.length > 0) {
+      listingFilters.financingOptions = filters.financingOptions;
+    }
+
+    return listingFilters;
   };
 
   return {
@@ -183,5 +269,6 @@ export const useFilters = () => {
     clearFilter,
     getActiveFilters,
     resetAllFilters,
+    getListingFilters,
   };
 };

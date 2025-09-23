@@ -2,14 +2,16 @@
 import { useState, useEffect } from 'react';
 import ListingsPanel from './ListingsPanel';
 import MapPanel from './MapPanel';
+import { ListingFilters } from '@/types/listing';
 
 interface MainPanelProps {
   showMapPanel: boolean;
   activeFiltersCount: number;
   squareSize: number;
+  filters?: ListingFilters;
 }
 
-export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize }: MainPanelProps) {
+export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters }: MainPanelProps) {
   const [headerHeight, setHeaderHeight] = useState(80); // Default fallback
 
   // Dynamically measure header height
@@ -43,6 +45,7 @@ export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize
         isMapOpen={showMapPanel}
         squareSize={squareSize}
         headerHeight={headerHeight}
+        filters={filters}
       />
 
       {/* Map Panel - positioned fixed, so doesn't affect layout */}

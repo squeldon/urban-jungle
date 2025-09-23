@@ -12,8 +12,11 @@ export interface FilterState {
   bathrooms: string;
   sqftMin: string;
   sqftMax: string;
-  dealQualities: string[];
+  listingTypes: string[];
+  investmentStrategies: string[];
   propertyConditions: string[];
+  occupancyStatuses: string[];
+  financingOptions: string[];
 }
 
 export interface ActiveFilter {
@@ -35,8 +38,11 @@ export const useFilters = () => {
     bathrooms: '',
     sqftMin: '',
     sqftMax: '',
-    dealQualities: [],
+    listingTypes: [],
+    investmentStrategies: [],
     propertyConditions: [],
+    occupancyStatuses: [],
+    financingOptions: [],
   });
 
   const updateFilter = (key: string, value: any) => {
@@ -53,7 +59,8 @@ export const useFilters = () => {
   };
 
   const clearFilter = (key: string) => {
-    if (key === 'propertyTypes' || key === 'dealQualities' || key === 'propertyConditions') {
+    const arrayFilters = ['propertyTypes', 'listingTypes', 'investmentStrategies', 'propertyConditions', 'occupancyStatuses', 'financingOptions'];
+    if (arrayFilters.includes(key)) {
       setFilters(prev => ({ ...prev, [key]: [] }));
     } else if (key.includes('price') || key.includes('Price')) {
       setFilters(prev => ({ ...prev, priceMin: '', priceMax: '' }));
@@ -115,10 +122,18 @@ export const useFilters = () => {
       });
     }
     
-    if (filters.dealQualities.length > 0) {
+    if (filters.listingTypes.length > 0) {
       active.push({ 
-        key: 'dealQualities', 
-        label: `Quality: ${filters.dealQualities.length === 1 ? filters.dealQualities[0] : `${filters.dealQualities.length} selected`}`, 
+        key: 'listingTypes', 
+        label: `Listing: ${filters.listingTypes.length === 1 ? filters.listingTypes[0] : `${filters.listingTypes.length} selected`}`, 
+        type: 'checkbox' 
+      });
+    }
+    
+    if (filters.investmentStrategies.length > 0) {
+      active.push({ 
+        key: 'investmentStrategies', 
+        label: `Strategy: ${filters.investmentStrategies.length === 1 ? filters.investmentStrategies[0] : `${filters.investmentStrategies.length} selected`}`, 
         type: 'checkbox' 
       });
     }
@@ -127,6 +142,22 @@ export const useFilters = () => {
       active.push({ 
         key: 'propertyConditions', 
         label: `Condition: ${filters.propertyConditions.length === 1 ? filters.propertyConditions[0] : `${filters.propertyConditions.length} selected`}`, 
+        type: 'checkbox' 
+      });
+    }
+    
+    if (filters.occupancyStatuses.length > 0) {
+      active.push({ 
+        key: 'occupancyStatuses', 
+        label: `Occupancy: ${filters.occupancyStatuses.length === 1 ? filters.occupancyStatuses[0] : `${filters.occupancyStatuses.length} selected`}`, 
+        type: 'checkbox' 
+      });
+    }
+    
+    if (filters.financingOptions.length > 0) {
+      active.push({ 
+        key: 'financingOptions', 
+        label: `Financing: ${filters.financingOptions.length === 1 ? filters.financingOptions[0] : `${filters.financingOptions.length} selected`}`, 
         type: 'checkbox' 
       });
     }
@@ -147,8 +178,11 @@ export const useFilters = () => {
       bathrooms: '',
       sqftMin: '',
       sqftMax: '',
-      dealQualities: [],
+      listingTypes: [],
+      investmentStrategies: [],
       propertyConditions: [],
+      occupancyStatuses: [],
+      financingOptions: [],
     });
   };
 

@@ -42,7 +42,7 @@ export default function Home() {
 
   const handleUserIconClick = () => {
     if (isLoggedIn) {
-      router.push('/admin');
+      router.push('/profile');
     } else {
       setShowAuthPopup(true);
     }

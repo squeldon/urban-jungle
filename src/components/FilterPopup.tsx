@@ -47,7 +47,7 @@ export default function FilterPopup({
       <div className="fixed top-[53%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-[600px] max-w-[90vw] h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Filter Properties
+            Filter Wholesale Properties
           </h2>
           <button
             onClick={onClose}
@@ -132,13 +132,33 @@ export default function FilterPopup({
             </div>
           </div>
 
+          {/* Listing Type */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Listing Type
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {['Wholesale', 'For Sale', 'For Rent'].map((type) => (
+                <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.listingTypes.includes(type)}
+                    onChange={() => onToggleArrayFilter('listingTypes', type)}
+                    className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{type}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Property Type */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Property Type
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {['Single Family', 'Multi-Family', 'Townhouse', 'Condo', 'Mobile Home', 'Land'].map((type) => (
+              {['Single Family House', 'Duplex', 'Triplex', 'Fourplex', 'Townhouse', 'Condo', 'Apartment', 'Land', 'Commercial'].map((type) => (
                 <label key={type} className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -147,6 +167,26 @@ export default function FilterPopup({
                     className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">{type}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Investment Strategy */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Investment Strategy
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {['Fix & Flip', 'Buy & Hold', 'Rental Property', 'Live-in Flip', 'BRRRR', 'Other'].map((strategy) => (
+                <label key={strategy} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.investmentStrategies.includes(strategy)}
+                    onChange={() => onToggleArrayFilter('investmentStrategies', strategy)}
+                    className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{strategy}</span>
                 </label>
               ))}
             </div>
@@ -214,33 +254,13 @@ export default function FilterPopup({
             </div>
           </div>
 
-          {/* Deal Quality */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Deal Quality
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['Great Deal', 'Good Deal', 'Fair Deal'].map((quality) => (
-                <label key={quality} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.dealQualities.includes(quality)}
-                    onChange={() => onToggleArrayFilter('dealQualities', quality)}
-                    className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{quality}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           {/* Property Condition */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Property Condition
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {['Move-in Ready', 'Cosmetic Repairs', 'Major Repairs', 'Tear Down'].map((condition) => (
+              {['Excellent', 'Good', 'Fair', 'Needs Cosmetic Work', 'Needs Full Rehab', 'Tear Down'].map((condition) => (
                 <label key={condition} className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -249,6 +269,46 @@ export default function FilterPopup({
                     className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">{condition}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Occupancy Status */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Occupancy Status
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {['Vacant', 'Owner Occupied', 'Tenant Occupied', 'Partially Occupied'].map((status) => (
+                <label key={status} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.occupancyStatuses.includes(status)}
+                    onChange={() => onToggleArrayFilter('occupancyStatuses', status)}
+                    className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{status}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Financing Options */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Financing Options
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {['Cash Only', 'Seller Financing', 'Hard Money', 'Conventional', 'Private Money'].map((option) => (
+                <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.financingOptions.includes(option)}
+                    onChange={() => onToggleArrayFilter('financingOptions', option)}
+                    className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{option}</span>
                 </label>
               ))}
             </div>

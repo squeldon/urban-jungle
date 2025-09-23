@@ -40,7 +40,9 @@ export interface PropertyListing {
   amenities: string[]; // e.g., ['gym', 'parking', 'laundry', 'pet-friendly']
   
   // Media
-  images: string[]; // URLs to images stored in Firebase Storage
+  images: string[]; // URLs to images stored in Firebase Storage (keeping for backward compatibility)
+  videos?: string[]; // URLs to videos stored in Firebase Storage
+  media?: string[]; // Combined URLs to all media (images and videos) - future enhancement
   virtualTourUrl?: string;
   
   // Listing metadata

@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useListings } from '@/hooks/useListings';
 import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing } from '@/types/listing';
-import { Heart, Eye, MapPin, Home, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getFileTypeFromUrl } from '@/lib/firebase/storage';
+import { Heart, Eye, MapPin, Home, Calendar, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 
 interface ListingsPanelProps {
   isMapOpen: boolean;
@@ -189,53 +190,94 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                     }}
                     onClick={() => handleListingClick(listing)}
                   >
-                    {/* Image container */}
+                    {/* Media container */}
                     <div className="relative h-1/2 bg-gray-200 dark:bg-gray-700 group">
                       {listing.images && listing.images.length > 0 ? (
                         <>
-                          <img
-                            src={listing.images[cardImageIndexes[listing.id] || 0]}
-                            alt={listing.title}
-                            className="w-full h-full object-cover"
-                          />
+                          {(() => {
+                            const currentMediaUrl = listing.images[cardImageIndexes[listing.id] || 0];
+                            const fileType = getFileTypeFromUrl(currentMediaUrl);
+                            const isVideo = fileType === 'video';
+                            
+                            return isVideo ? (
+                              <div className="relative w-full h-full">
+                                <video
+                                  src={currentMediaUrl}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  preload="metadata"
+                                />
+                                {/* Video play overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="bg-black/60 rounded-full p-3">
+                                    <Play className="w-6 h-6 text-white" fill="currentColor" />
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <img
+                                src={currentMediaUrl}
+                                alt={listing.title}
+                                className="w-full h-full object-cover"
+                              />
+                            );
+                          })()}
                           
-                          {/* Photo navigation - only show on hover and if multiple images */}
+                          {/* Media navigation - only show on hover and if multiple items */}
                           {listing.images.length > 1 && (
                             <>
-                              {/* Previous image button */}
+                              {/* Previous media button */}
                               <button
                                 onClick={(e) => handleImageNavigation(listing.id, 'prev', listing.images.length, e)}
-                                className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                                className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10"
                               >
                                 <ChevronLeft className="w-3 h-3" />
                               </button>
                               
-                              {/* Next image button */}
+                              {/* Next media button */}
                               <button
                                 onClick={(e) => handleImageNavigation(listing.id, 'next', listing.images.length, e)}
-                                className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                                className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10"
                               >
                                 <ChevronRight className="w-3 h-3" />
                               </button>
                               
-                              {/* Photo indicators - only visible on hover */}
-                              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {listing.images.map((_, index) => (
-                                  <div
-                                    key={index}
-                                    className={`w-1.5 h-1.5 rounded-full ${
-                                      index === (cardImageIndexes[listing.id] || 0)
-                                        ? 'bg-white' 
-                                        : 'bg-white/50'
-                                    }`}
-                                  />
-                                ))}
+                              {/* Media indicators - only visible on hover */}
+                              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                {listing.images.map((mediaUrl, index) => {
+                                  const fileType = getFileTypeFromUrl(mediaUrl);
+                                  const isVideo = fileType === 'video';
+                                  
+                                  return (
+                                    <div
+                                      key={index}
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        index === (cardImageIndexes[listing.id] || 0)
+                                          ? isVideo ? 'bg-purple-400' : 'bg-white'
+                                          : isVideo ? 'bg-purple-400/50' : 'bg-white/50'
+                                      }`}
+                                    />
+                                  );
+                                })}
                               </div>
                               
-                              {/* Photo counter - only visible on hover */}
-                              <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                              {/* Media counter - only visible on hover */}
+                              <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                 {(cardImageIndexes[listing.id] || 0) + 1} / {listing.images.length}
                               </div>
+                              
+                              {/* Media type indicator */}
+                              {(() => {
+                                const currentMediaUrl = listing.images[cardImageIndexes[listing.id] || 0];
+                                const fileType = getFileTypeFromUrl(currentMediaUrl);
+                                const isVideo = fileType === 'video';
+                                
+                                return isVideo && (
+                                  <div className="absolute top-2 right-16 bg-purple-600 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                    Video
+                                  </div>
+                                );
+                              })()}
                             </>
                           )}
                         </>

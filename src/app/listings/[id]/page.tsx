@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing } from '@/types/listing';
 import { getListing, toggleFavorite, incrementViewCount } from '@/lib/firestore/listings';
-import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Car, Star, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
+import { getFileTypeFromUrl } from '@/lib/firebase/storage';
+import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Car, Star, ChevronLeft, ChevronRight, X, ZoomIn, Play } from 'lucide-react';
 
 interface ListingDetailPageProps {
   params: Promise<{
@@ -196,22 +197,46 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
               {listing.images && listing.images.length > 0 ? (
                 <div className="space-y-4">
-                  {/* Main Image */}
+                  {/* Main Media */}
                   <div className="relative group">
                     <div 
                       className="cursor-pointer"
                       onClick={() => openPhotoViewer()}
                     >
-                      <img
-                        src={listing.images[imageIndex]}
-                        alt={listing.title}
-                        className="w-full h-96 object-cover"
-                      />
-                      
-                      {/* Zoom icon overlay */}
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <ZoomIn className="w-8 h-8 text-white" />
-                      </div>
+                      {(() => {
+                        const currentMediaUrl = listing.images[imageIndex];
+                        const fileType = getFileTypeFromUrl(currentMediaUrl);
+                        const isVideo = fileType === 'video';
+                        
+                        return isVideo ? (
+                          <div className="relative">
+                            <video
+                              src={currentMediaUrl}
+                              className="w-full h-96 object-cover"
+                              muted
+                              preload="metadata"
+                            />
+                            {/* Video play overlay */}
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <div className="bg-black/60 rounded-full p-4">
+                                <Play className="w-8 h-8 text-white" fill="currentColor" />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <img
+                              src={currentMediaUrl}
+                              alt={listing.title}
+                              className="w-full h-96 object-cover"
+                            />
+                            {/* Zoom icon overlay */}
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <ZoomIn className="w-8 h-8 text-white" />
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Navigation arrows */}
@@ -245,7 +270,7 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
                     <div className="px-4 pb-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                          All Photos ({listing.images.length})
+                          All Media ({listing.images.length})
                         </h4>
                         <button
                           onClick={openGalleryPopup}
@@ -256,23 +281,45 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
                       </div>
                       
                       <div className="grid grid-cols-6 gap-2">
-                        {listing.images.slice(0, 12).map((image, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setImageIndex(index)}
-                            className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
-                              index === imageIndex
-                                ? 'border-blue-500'
-                                : 'border-transparent hover:border-gray-300'
-                            }`}
-                          >
-                            <img
-                              src={image}
-                              alt={`Photo ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </button>
-                        ))}
+                        {listing.images.slice(0, 12).map((mediaUrl, index) => {
+                          const fileType = getFileTypeFromUrl(mediaUrl);
+                          const isVideo = fileType === 'video';
+                          
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => setImageIndex(index)}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
+                                index === imageIndex
+                                  ? 'border-blue-500'
+                                  : 'border-transparent hover:border-gray-300'
+                              }`}
+                            >
+                              {isVideo ? (
+                                <>
+                                  <video
+                                    src={mediaUrl}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    preload="metadata"
+                                  />
+                                  {/* Video indicator */}
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="bg-black/60 rounded-full p-1">
+                                      <Play className="w-3 h-3 text-white" fill="currentColor" />
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <img
+                                  src={mediaUrl}
+                                  alt={`Media ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
                         
                         {/* Show more indicator */}
                         {listing.images.length > 12 && (
@@ -629,8 +676,10 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">All Photos</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{listing.images.length} photos</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">All Media</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {listing.images.length} files ({listing.images.filter(url => getFileTypeFromUrl(url) === 'video').length} videos)
+                </p>
               </div>
               <button
                 onClick={closeGalleryPopup}
@@ -640,48 +689,76 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
               </button>
             </div>
 
-            {/* Scrollable Photo Grid */}
+            {/* Scrollable Media Grid */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {listing.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => openPhotoFromGallery(index)}
-                    className="group relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:shadow-lg transition-all"
-                  >
-                    <img
-                      src={image}
-                      alt={`Photo ${index + 1}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                    
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <ZoomIn className="w-8 h-8 text-white" />
-                    </div>
-                    
-                    {/* Photo number */}
-                    <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                      {index + 1}
-                    </div>
-                  </button>
-                ))}
+                {listing.images.map((mediaUrl, index) => {
+                  const fileType = getFileTypeFromUrl(mediaUrl);
+                  const isVideo = fileType === 'video';
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => openPhotoFromGallery(index)}
+                      className="group relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:shadow-lg transition-all"
+                    >
+                      {isVideo ? (
+                        <video
+                          src={mediaUrl}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          muted
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={mediaUrl}
+                          alt={`Media ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      )}
+                      
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        {isVideo ? (
+                          <Play className="w-8 h-8 text-white" fill="currentColor" />
+                        ) : (
+                          <ZoomIn className="w-8 h-8 text-white" />
+                        )}
+                      </div>
+                      
+                      {/* Media number */}
+                      <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+                        {index + 1}
+                      </div>
+                      
+                      {/* Video indicator */}
+                      {isVideo && (
+                        <div className="absolute top-2 right-2 bg-purple-600 text-white px-2 py-1 rounded text-xs">
+                          Video
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Photo Viewer Modal */}
+      {/* Media Viewer Modal */}
       {showPhotoViewer && listing?.images && listing.images.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
           <div className="relative w-full h-full flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 text-white">
+            <div className="flex-shrink-0 flex items-center justify-between p-4 text-white">
               <div className="flex items-center space-x-4">
                 <h3 className="text-lg font-medium">{listing.title}</h3>
                 <span className="text-sm opacity-75">
                   {imageIndex + 1} of {listing.images.length}
+                </span>
+                <span className="text-sm opacity-75 bg-white/10 px-2 py-1 rounded">
+                  {getFileTypeFromUrl(listing.images[imageIndex]) === 'video' ? 'Video' : 'Image'}
                 </span>
               </div>
               <button
@@ -692,27 +769,44 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
               </button>
             </div>
 
-            {/* Main Image Container */}
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="relative max-w-7xl max-h-full">
-                <img
-                  src={listing.images[imageIndex]}
-                  alt={`Photo ${imageIndex + 1}`}
-                  className="max-w-full max-h-full object-contain"
-                />
+            {/* Main Media Container */}
+            <div className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden">
+              <div className="relative w-full h-full flex items-center justify-center">
+                {(() => {
+                  const currentMediaUrl = listing.images[imageIndex];
+                  const fileType = getFileTypeFromUrl(currentMediaUrl);
+                  const isVideo = fileType === 'video';
+                  
+                  return isVideo ? (
+                    <video
+                      src={currentMediaUrl}
+                      className="max-w-full max-h-full object-contain"
+                      controls
+                      autoPlay
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={currentMediaUrl}
+                      alt={`Media ${imageIndex + 1}`}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  );
+                })()}
 
                 {/* Navigation Arrows */}
                 {listing.images.length > 1 && (
                   <>
                     <button
                       onClick={() => navigateImage('prev')}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors"
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors z-10"
                     >
                       <ChevronLeft className="w-8 h-8" />
                     </button>
                     <button
                       onClick={() => navigateImage('next')}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors z-10"
                     >
                       <ChevronRight className="w-8 h-8" />
                     </button>
@@ -723,26 +817,48 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
 
             {/* Bottom Thumbnail Strip */}
             {listing.images.length > 1 && (
-              <div className="p-4 bg-black/20">
+              <div className="flex-shrink-0 p-4 bg-black/20">
                 <div className="flex justify-center">
                   <div className="flex space-x-2 overflow-x-auto max-w-full">
-                    {listing.images.map((image, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setImageIndex(index)}
-                        className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                          index === imageIndex
-                            ? 'border-white'
-                            : 'border-transparent hover:border-white/50'
-                        }`}
-                      >
-                        <img
-                          src={image}
-                          alt={`Thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
+                    {listing.images.map((mediaUrl, index) => {
+                      const fileType = getFileTypeFromUrl(mediaUrl);
+                      const isVideo = fileType === 'video';
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setImageIndex(index)}
+                          className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                            index === imageIndex
+                              ? 'border-white'
+                              : 'border-transparent hover:border-white/50'
+                          }`}
+                        >
+                          {isVideo ? (
+                            <>
+                              <video
+                                src={mediaUrl}
+                                className="w-full h-full object-cover"
+                                muted
+                                preload="metadata"
+                              />
+                              {/* Video indicator */}
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="bg-black/60 rounded-full p-1">
+                                  <Play className="w-2 h-2 text-white" fill="currentColor" />
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={mediaUrl}
+                              alt={`Thumbnail ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

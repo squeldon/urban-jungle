@@ -2,8 +2,9 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Camera, Image as ImageIcon } from 'lucide-react';
 import { CreateListingData } from '@/types/listing';
-import { uploadMultipleImages, deleteImage, isFirebaseStorageUrl } from '@/lib/firebase/storage';
+import { uploadMultipleFiles, deleteFile, isFirebaseStorageUrl, isImageFile, isVideoFile, getFileTypeFromUrl } from '@/lib/firebase/storage';
 import { useAuthContext } from '@/context/AuthContext';
+import { StorageQuota } from '@/components/ui/StorageQuota';
 
 interface ImageUploadSectionProps {
   formData: CreateListingData;
@@ -37,15 +38,23 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          console.warn(`File ${file.name} is not an image`);
+        // Validate file type - accept both images and videos
+        if (!isImageFile(file) && !isVideoFile(file)) {
+          console.warn(`File ${file.name} is not a supported media type (images or videos only)`);
           continue;
         }
 
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          console.warn(`File ${file.name} is too large (max 10MB)`);
+        // Validate file size - different limits for images vs videos
+        const maxImageSize = 10 * 1024 * 1024; // 10MB for images
+        const maxVideoSize = 100 * 1024 * 1024; // 100MB for videos
+        
+        if (isImageFile(file) && file.size > maxImageSize) {
+          console.warn(`Image ${file.name} is too large (max 10MB for images)`);
+          continue;
+        }
+        
+        if (isVideoFile(file) && file.size > maxVideoSize) {
+          console.warn(`Video ${file.name} is too large (max 100MB for videos)`);
           continue;
         }
 
@@ -53,12 +62,12 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
       }
 
       if (validFiles.length === 0) {
-        console.warn('No valid image files to upload');
+        console.warn('No valid media files to upload');
         return;
       }
 
-      // Upload images to Firebase Storage
-      const uploadedUrls = await uploadMultipleImages(
+      // Upload media files to Firebase Storage
+      const uploadedUrls = await uploadMultipleFiles(
         validFiles,
         user.uid,
         undefined, // No listing ID yet (this is during creation)
@@ -73,7 +82,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
       console.error('Error uploading images:', error);
       
       // Show user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload images';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload media files';
       alert(`Upload failed: ${errorMessage}`);
     } finally {
       setUploading(false);
@@ -104,21 +113,31 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
     }
   };
 
-  const removeImage = async (index: number) => {
-    const imageUrl = formData.images[index];
+  const removeMedia = async (index: number) => {
+    const mediaUrl = formData.images[index];
     
-    // If it's a Firebase Storage URL, delete it from storage
-    if (isFirebaseStorageUrl(imageUrl)) {
-      try {
-        await deleteImage(imageUrl);
-      } catch (error) {
-        console.error('Error deleting image from storage:', error);
-        // Continue with removing from form even if storage deletion fails
-      }
-    }
-    
+    // Always remove from form data first to ensure UI updates
     const newImages = formData.images.filter((_, i) => i !== index);
     onImagesChange(newImages);
+    
+    // If it's a Firebase Storage URL, delete it from storage
+    if (isFirebaseStorageUrl(mediaUrl)) {
+      try {
+        const fileType = getFileTypeFromUrl(mediaUrl);
+        console.log(`Removing ${fileType} from storage: ${mediaUrl}`);
+        await deleteFile(mediaUrl, user?.uid);
+        console.log(`${fileType} successfully removed from storage`);
+      } catch (error) {
+        console.error('Error deleting media from storage:', error);
+        
+        // Show user-friendly error message only for unexpected errors
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (!errorMessage.includes('already deleted') && !errorMessage.includes("doesn't exist")) {
+          console.warn(`Failed to delete media from storage: ${errorMessage}`);
+          // Don't alert the user for these common cases, just log it
+        }
+      }
+    }
   };
 
   const moveImage = (fromIndex: number, toIndex: number) => {
@@ -164,15 +183,15 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Property Photos</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Photos and Videos</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Upload high-quality photos of your property. The first image will be used as the cover photo.
+            Upload high-quality media of your property. The first image will be used as the cover photo.
           </p>
         </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {formData.images.length}/20 photos
-        </div>
       </div>
+
+      {/* Storage Quota Display */}
+      <StorageQuota className="mb-4" />
 
       {/* Upload Area */}
       <div
@@ -189,7 +208,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*"
+          accept="image/*,video/*"
           onChange={handleFileInputChange}
           className="hidden"
         />
@@ -205,7 +224,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
           
           {uploading ? (
             <div className="text-gray-600 dark:text-gray-400">
-              <p>Uploading photos...</p>
+              <p>Uploading media...</p>
               {uploadProgress.total > 0 && (
                 <p className="text-sm mt-1">
                   {uploadProgress.current} of {uploadProgress.total} uploaded
@@ -215,7 +234,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
           ) : (
             <>
               <p className="text-gray-600 dark:text-gray-400 mb-2">
-                Drag and drop photos here, or{' '}
+                Drag and drop photos and videos here, or{' '}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -225,53 +244,90 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Support JPG, PNG, WebP up to 10MB each
+                Images: JPG, PNG, WebP up to 10MB • Videos: MP4, WebM up to 100MB
               </p>
             </>
           )}
         </div>
       </div>
 
-      {/* Uploaded Images */}
+      {/* Uploaded Media */}
       {formData.images.length > 0 && (
         <div className="space-y-4">
-          <h4 className="font-medium text-gray-900 dark:text-white">Uploaded Photos</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-gray-900 dark:text-white">Uploaded Media</h4>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {formData.images.length} files
+            </div>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {formData.images.map((image, index) => (
-              <div 
-                key={index} 
-                className={`relative group cursor-move transition-all duration-200 ${
-                  draggedIndex === index ? 'opacity-50 scale-95' : ''
-                } ${
-                  dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-500 scale-105' : ''
-                }`}
-                draggable
-                onDragStart={(e) => handlePhotoDragStart(e, index)}
-                onDragOver={(e) => handlePhotoDragOver(e, index)}
-                onDragLeave={handlePhotoDragLeave}
-                onDragEnd={handlePhotoDragEnd}
-                onDrop={(e) => handlePhotoDrop(e, index)}
-              >
-                <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                  <img
-                    src={image}
-                    alt={`Property photo ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    draggable={false}
-                  />
-                </div>
+            {formData.images.map((mediaUrl, index) => {
+              const fileType = getFileTypeFromUrl(mediaUrl);
+              const isVideo = fileType === 'video';
+              
+              return (
+                <div 
+                  key={index} 
+                  className={`relative group cursor-move transition-all duration-200 ${
+                    draggedIndex === index ? 'opacity-50 scale-95' : ''
+                  } ${
+                    dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-500 scale-105' : ''
+                  }`}
+                  draggable
+                  onDragStart={(e) => handlePhotoDragStart(e, index)}
+                  onDragOver={(e) => handlePhotoDragOver(e, index)}
+                  onDragLeave={handlePhotoDragLeave}
+                  onDragEnd={handlePhotoDragEnd}
+                  onDrop={(e) => handlePhotoDrop(e, index)}
+                >
+                  <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                    {isVideo ? (
+                      <video
+                        src={mediaUrl}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                        muted
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img
+                        src={mediaUrl}
+                        alt={`Property media ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    )}
+                    
+                    {/* Video indicator */}
+                    {isVideo && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-black/60 rounded-full p-3">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 5v10l7-5-7-5z"/>
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 
-                {/* Cover Photo Badge */}
+                {/* Cover Media Badge */}
                 {index === 0 && (
                   <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 text-xs rounded">
-                    Cover Photo
+                    Cover {isVideo ? 'Video' : 'Photo'}
+                  </div>
+                )}
+                
+                {/* File Type Badge */}
+                {isVideo && index !== 0 && (
+                  <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 text-xs rounded">
+                    Video
                   </div>
                 )}
 
                 {/* Remove Button */}
                 <button
                   type="button"
-                  onClick={() => removeImage(index)}
+                  onClick={() => removeMedia(index)}
                   className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                   disabled={uploading}
                 >
@@ -312,14 +368,14 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
           {/* Instructions */}
           <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-            <p>• The first photo will be used as the cover photo on listing cards</p>
-            <p>• Drag and drop photos to reorder them, or use the arrow buttons</p>
-            <p>• Click the X button to remove unwanted photos</p>
+            <p>• The first media file will be used as the cover on listing cards</p>
+            <p>• Drag and drop to reorder media, or use the arrow buttons</p>
+            <p>• Click the X button to remove unwanted media</p>
           </div>
         </div>
       )}

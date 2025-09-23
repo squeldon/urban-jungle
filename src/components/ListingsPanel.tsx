@@ -117,7 +117,9 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
     }));
   };
 
-  const formatPrice = (price: number, listingType: string) => {
+  const formatPrice = (price: number | undefined, listingType: string) => {
+    if (price === undefined || price === null) return 'Price TBD';
+    
     const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -317,7 +319,7 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                     }`}>
                       {/* Title */}
                       <h3 className={`font-semibold text-gray-900 dark:text-white leading-tight ${
-                        squareSize >= 265 ? 'text-sm line-clamp-2' : 'text-xs truncate'
+                        squareSize >= 265 ? 'text-sm truncate' : 'text-xs truncate'
                       }`}>
                         {listing.title}
                       </h3>
@@ -394,11 +396,6 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                       {/* Bottom row - Fixed to bottom with better space management */}
                       <div className="flex items-center justify-between mt-auto pt-1 min-h-0">
                         <div className="flex items-center gap-1 flex-1 min-w-0">
-                          {squareSize >= 265 && listing.investmentStrategy && (
-                            <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1 py-0.5 rounded text-xs truncate">
-                              {listing.investmentStrategy.replace('-', ' ')}
-                            </span>
-                          )}
                           {squareSize < 200 && listing.bedrooms && (
                             <span className="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
                               {listing.bedrooms}bd/{listing.bathrooms}ba

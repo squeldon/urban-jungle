@@ -17,7 +17,7 @@ export function ContactInfoSection({ formData, onChange }: ContactInfoSectionPro
           <input
             type="text"
             name="contactInfo.name"
-            value={formData.contactInfo.name}
+            value={formData.contactInfo.name || ''}
             onChange={onChange}
             required
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -43,7 +43,7 @@ export function ContactInfoSection({ formData, onChange }: ContactInfoSectionPro
           <input
             type="email"
             name="contactInfo.email"
-            value={formData.contactInfo.email}
+            value={formData.contactInfo.email || ''}
             onChange={onChange}
             required
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"

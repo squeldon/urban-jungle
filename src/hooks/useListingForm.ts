@@ -8,10 +8,12 @@ export function useListingForm(editListing?: PropertyListing) {
   const getInitialFormData = (): CreateListingData => ({
     title: '',
     description: '',
-    price: 0,
+    price: undefined,
     propertyType: 'house',
     listingType: 'wholesale',
     address: {
+      houseNumber: '',
+      streetName: '',
       street: '',
       city: '',
       state: '',
@@ -35,6 +37,7 @@ export function useListingForm(editListing?: PropertyListing) {
       appointmentRequired: false,
       accessRestrictions: '',
     },
+    comps: [],
     status: 'active',
     isVerified: false,
     createdBy: '',
@@ -43,8 +46,8 @@ export function useListingForm(editListing?: PropertyListing) {
   const initializeFormData = (listing?: PropertyListing): CreateListingData => {
     if (listing) {
       return {
-        title: listing.title,
-        description: listing.description,
+        title: listing.title || '',
+        description: listing.description || '',
         price: listing.price,
         propertyType: listing.propertyType,
         listingType: listing.listingType,
@@ -56,24 +59,37 @@ export function useListingForm(editListing?: PropertyListing) {
         arv: listing.arv,
         repairCosts: listing.repairCosts,
         wholesaleFee: listing.wholesaleFee,
-        investmentStrategy: listing.investmentStrategy,
         propertyCondition: listing.propertyCondition,
         occupancyStatus: listing.occupancyStatus,
         monthlyRent: listing.monthlyRent,
-        address: { ...listing.address },
+        address: { 
+          ...listing.address,
+          houseNumber: listing.address.houseNumber || '',
+          streetName: listing.address.streetName || listing.address.street || '',
+          street: listing.address.street || '',
+        },
         coordinates: listing.coordinates,
         features: [...listing.features],
         amenities: [...listing.amenities],
         images: [...listing.images],
         virtualTourUrl: listing.virtualTourUrl,
-        contactInfo: { ...listing.contactInfo },
-        dealTerms: listing.dealTerms ? { ...listing.dealTerms } : {
+        contactInfo: { 
+          ...listing.contactInfo,
+          name: listing.contactInfo?.name || '',
+          email: listing.contactInfo?.email || '',
+        },
+        dealTerms: listing.dealTerms ? { 
+          ...listing.dealTerms,
+          showingInstructions: listing.dealTerms.showingInstructions || '',
+          accessRestrictions: listing.dealTerms.accessRestrictions || '',
+        } : {
           financingOptions: [],
           proofOfFundsRequired: false,
           showingInstructions: '',
           appointmentRequired: false,
           accessRestrictions: '',
         },
+        comps: listing.comps ? [...listing.comps] : [],
         tags: [...listing.tags],
         status: listing.status,
         isVerified: listing.isVerified,
@@ -95,21 +111,43 @@ export function useListingForm(editListing?: PropertyListing) {
     
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof CreateListingData] as any,
-          [child]: type === 'checkbox' ? checked : (
-            ['earnestMoneyDeposit'].includes(child) ? 
-              (value === '' ? null : Number(value) || null) : 
-              (value === '' ? '' : value)
-          ),
-        },
-      }));
+      
+      // Handle address field updates and auto-combine street address
+      if (parent === 'address' && (child === 'houseNumber' || child === 'streetName')) {
+        setFormData(prev => {
+          const updatedAddress = {
+            ...prev.address,
+            [child]: value === '' ? '' : value,
+          };
+          
+          // Auto-combine house number and street name for the street field
+          const houseNumber = child === 'houseNumber' ? value : prev.address.houseNumber;
+          const streetName = child === 'streetName' ? value : prev.address.streetName;
+          updatedAddress.street = [houseNumber, streetName].filter(Boolean).join(' ');
+          
+          return {
+            ...prev,
+            address: updatedAddress,
+          };
+        });
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [parent]: {
+            ...prev[parent as keyof CreateListingData] as any,
+            [child]: type === 'checkbox' ? checked : (
+              ['earnestMoneyDeposit'].includes(child) ? 
+                (value === '' ? null : Number(value) || null) : 
+                (value === '' ? '' : value)
+            ),
+          },
+        }));
+      }
     } else {
-      const numericFields = ['price', 'bedrooms', 'bathrooms', 'squareFeet', 'yearBuilt', 'arv', 'repairCosts', 'wholesaleFee', 'monthlyRent'];
+      const numericFields = ['price', 'bedrooms', 'bathrooms', 'squareFeet', 'lotSize', 'yearBuilt', 'arv', 'repairCosts', 'wholesaleFee', 'monthlyRent'];
       if (numericFields.includes(name)) {
-        const numValue = value === '' ? null : Number(value);
+        // Allow all numeric fields to be empty/undefined, even if required
+        const numValue = value === '' ? undefined : Number(value);
         setFormData(prev => ({
           ...prev,
           [name]: numValue,
@@ -175,6 +213,42 @@ export function useListingForm(editListing?: PropertyListing) {
     }));
   };
 
+  const addComp = () => {
+    setFormData(prev => ({
+      ...prev,
+      comps: [
+        ...(prev.comps || []),
+        {
+          address: '',
+          salePrice: 0,
+          saleDate: '',
+          squareFeet: undefined,
+          bedrooms: undefined,
+          bathrooms: undefined,
+          daysonMarket: undefined,
+          distanceFromSubject: undefined,
+          notes: '',
+        },
+      ],
+    }));
+  };
+
+  const removeComp = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      comps: (prev.comps || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateComp = (index: number, field: string, value: string | number | undefined) => {
+    setFormData(prev => ({
+      ...prev,
+      comps: (prev.comps || []).map((comp, i) => 
+        i === index ? { ...comp, [field]: value } : comp
+      ),
+    }));
+  };
+
   const resetForm = () => {
     setFormData(getInitialFormData());
   };
@@ -189,6 +263,9 @@ export function useListingForm(editListing?: PropertyListing) {
     removeAmenity,
     toggleFinancingOption,
     handleImagesChange,
+    addComp,
+    removeComp,
+    updateComp,
     resetForm,
   };
 }

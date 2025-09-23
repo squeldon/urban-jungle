@@ -172,25 +172,6 @@ export default function FilterPopup({
             </div>
           </div>
 
-          {/* Investment Strategy */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Investment Strategy
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {['Fix & Flip', 'Buy & Hold', 'Rental Property', 'Live-in Flip', 'BRRRR', 'Other'].map((strategy) => (
-                <label key={strategy} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.investmentStrategies.includes(strategy)}
-                    onChange={() => onToggleArrayFilter('investmentStrategies', strategy)}
-                    className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{strategy}</span>
-                </label>
-              ))}
-            </div>
-          </div>
 
           {/* Bedrooms/Bathrooms */}
           <div className="grid grid-cols-2 gap-4">

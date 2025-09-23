@@ -13,7 +13,6 @@ export interface FilterState {
   sqftMin: string;
   sqftMax: string;
   listingTypes: string[];
-  investmentStrategies: string[];
   propertyConditions: string[];
   occupancyStatuses: string[];
   financingOptions: string[];
@@ -39,7 +38,6 @@ export const useFilters = () => {
     sqftMin: '',
     sqftMax: '',
     listingTypes: [],
-    investmentStrategies: [],
     propertyConditions: [],
     occupancyStatuses: [],
     financingOptions: [],
@@ -59,7 +57,7 @@ export const useFilters = () => {
   };
 
   const clearFilter = (key: string) => {
-    const arrayFilters = ['propertyTypes', 'listingTypes', 'investmentStrategies', 'propertyConditions', 'occupancyStatuses', 'financingOptions'];
+    const arrayFilters = ['propertyTypes', 'listingTypes', 'propertyConditions', 'occupancyStatuses', 'financingOptions'];
     if (arrayFilters.includes(key)) {
       setFilters(prev => ({ ...prev, [key]: [] }));
     } else if (key.includes('price') || key.includes('Price')) {
@@ -130,13 +128,6 @@ export const useFilters = () => {
       });
     }
     
-    if (filters.investmentStrategies.length > 0) {
-      active.push({ 
-        key: 'investmentStrategies', 
-        label: `Strategy: ${filters.investmentStrategies.length === 1 ? filters.investmentStrategies[0] : `${filters.investmentStrategies.length} selected`}`, 
-        type: 'checkbox' 
-      });
-    }
     
     if (filters.propertyConditions.length > 0) {
       active.push({ 
@@ -179,7 +170,6 @@ export const useFilters = () => {
       sqftMin: '',
       sqftMax: '',
       listingTypes: [],
-      investmentStrategies: [],
       propertyConditions: [],
       occupancyStatuses: [],
       financingOptions: [],

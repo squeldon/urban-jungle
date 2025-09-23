@@ -34,7 +34,9 @@ function Page() {
     );
   }
 
-  const formatPrice = (price: number, listingType: string) => {
+  const formatPrice = (price: number | undefined, listingType: string) => {
+    if (price === undefined || price === null) return 'Price TBD';
+    
     const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

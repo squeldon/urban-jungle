@@ -12,28 +12,43 @@ export function AddressSection({ formData, onChange }: AddressSectionProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-medium text-gray-900 dark:text-white">Address</h3>
       
-      <FormField label="Street Address" required>
-        <input
-          type="text"
-          name="address.street"
-          value={formData.address.street}
-          onChange={onChange}
-          required
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          placeholder="123 Main Street"
-        />
-      </FormField>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <FormField label="House Number">
+          <input
+            type="text"
+            name="address.houseNumber"
+            value={formData.address.houseNumber || ''}
+            onChange={onChange}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            placeholder="12XX"
+          />
+        </FormField>
+
+        <div className="md:col-span-3">
+          <FormField label="Street Name" required>
+            <input
+              type="text"
+              name="address.streetName"
+              value={formData.address.streetName || ''}
+              onChange={onChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              placeholder="Main Street"
+            />
+          </FormField>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FormField label="City" required>
           <input
             type="text"
             name="address.city"
-            value={formData.address.city}
+            value={formData.address.city || ''}
             onChange={onChange}
             required
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            placeholder="San Francisco"
+            placeholder="Baltimore"
           />
         </FormField>
 
@@ -41,11 +56,11 @@ export function AddressSection({ formData, onChange }: AddressSectionProps) {
           <input
             type="text"
             name="address.state"
-            value={formData.address.state}
+            value={formData.address.state || ''}
             onChange={onChange}
             required
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            placeholder="CA"
+            placeholder="MD"
           />
         </FormField>
 
@@ -53,11 +68,11 @@ export function AddressSection({ formData, onChange }: AddressSectionProps) {
           <input
             type="text"
             name="address.zipCode"
-            value={formData.address.zipCode}
+            value={formData.address.zipCode || ''}
             onChange={onChange}
             required
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            placeholder="94102"
+            placeholder="21218"
           />
         </FormField>
       </div>

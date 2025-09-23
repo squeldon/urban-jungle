@@ -2,7 +2,7 @@ export interface PropertyListing {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price?: number;
   propertyType: 'house' | 'apartment' | 'condo' | 'townhouse' | 'duplex' | 'triplex' | 'fourplex' | 'land' | 'commercial';
   listingType: 'wholesale' | 'sale' | 'rent';
   
@@ -17,14 +17,15 @@ export interface PropertyListing {
   arv?: number; // After Repair Value
   repairCosts?: number; // Estimated repair costs
   wholesaleFee?: number; // Wholesaler fee
-  investmentStrategy?: 'fix-flip' | 'buy-hold' | 'rental' | 'live-in-flip' | 'brrrr' | 'other';
   propertyCondition?: 'excellent' | 'good' | 'fair' | 'needs-cosmetic' | 'needs-full-rehab' | 'tear-down';
   occupancyStatus?: 'vacant' | 'owner-occupied' | 'tenant-occupied' | 'partially-occupied';
   monthlyRent?: number; // Current or projected rental income
   
   // Location
   address: {
-    street: string;
+    houseNumber?: string; // Optional house number (e.g., "1234")
+    streetName: string; // Required street name (e.g., "Main Street")
+    street: string; // Combined address for backward compatibility
     city: string;
     state: string;
     zipCode: string;
@@ -72,6 +73,19 @@ export interface PropertyListing {
     accessRestrictions?: string;
   };
   
+  // Comparable sales data
+  comps?: {
+    address: string;
+    salePrice: number;
+    saleDate: string; // ISO date string
+    squareFeet?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    daysonMarket?: number;
+    distanceFromSubject?: number; // in miles
+    notes?: string;
+  }[];
+  
   // Additional metadata
   views: number;
   favorites: string[]; // Array of user IDs who favorited this listing
@@ -106,7 +120,6 @@ export interface ListingFilters {
     min: number;
     max: number;
   };
-  investmentStrategy?: string[];
   propertyCondition?: string[];
   occupancyStatus?: string[];
   financingOptions?: string[];

@@ -16,7 +16,7 @@ export function BasicInfoSection({ formData, onChange }: BasicInfoSectionProps) 
         <input
           type="text"
           name="title"
-          value={formData.title}
+          value={formData.title || ''}
           onChange={onChange}
           required
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -27,7 +27,7 @@ export function BasicInfoSection({ formData, onChange }: BasicInfoSectionProps) 
       <FormField label="Property Description" required>
         <textarea
           name="description"
-          value={formData.description}
+          value={formData.description || ''}
           onChange={onChange}
           required
           rows={4}
@@ -36,7 +36,7 @@ export function BasicInfoSection({ formData, onChange }: BasicInfoSectionProps) 
         />
       </FormField>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="Property Type" required>
           <select
             name="propertyType"
@@ -70,26 +70,9 @@ export function BasicInfoSection({ formData, onChange }: BasicInfoSectionProps) 
             <option value="rent">For Rent</option>
           </select>
         </FormField>
-
-        <FormField label="Investment Strategy">
-          <select
-            name="investmentStrategy"
-            value={formData.investmentStrategy ?? ''}
-            onChange={onChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">Select strategy...</option>
-            <option value="fix-flip">Fix & Flip</option>
-            <option value="buy-hold">Buy & Hold</option>
-            <option value="rental">Rental Property</option>
-            <option value="live-in-flip">Live-in Flip</option>
-            <option value="brrrr">BRRRR</option>
-            <option value="other">Other</option>
-          </select>
-        </FormField>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <FormField label="Bedrooms">
           <input
             type="number"
@@ -121,6 +104,18 @@ export function BasicInfoSection({ formData, onChange }: BasicInfoSectionProps) 
             onChange={onChange}
             min="0"
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          />
+        </FormField>
+
+        <FormField label="Lot Size (sq ft)">
+          <input
+            type="number"
+            name="lotSize"
+            value={formData.lotSize ?? ''}
+            onChange={onChange}
+            min="0"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            placeholder="7200"
           />
         </FormField>
 

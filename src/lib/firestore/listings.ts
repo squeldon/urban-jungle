@@ -190,10 +190,6 @@ export async function getListings(
           if (!listing.squareFeet || listing.squareFeet > filters.squareFeet.max) return false;
         }
 
-        // Filter by investment strategy
-        if (filters.investmentStrategy && filters.investmentStrategy.length > 0) {
-          if (!listing.investmentStrategy || !filters.investmentStrategy.includes(listing.investmentStrategy)) return false;
-        }
 
         // Filter by property condition
         if (filters.propertyCondition && filters.propertyCondition.length > 0) {

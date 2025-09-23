@@ -14,6 +14,7 @@ import { DealTermsSection } from './forms/DealTermsSection';
 import { PropertyFeaturesSection } from './forms/PropertyFeaturesSection';
 import { ContactInfoSection } from './forms/ContactInfoSection';
 import { ImageUploadSection } from './forms/ImageUploadSection';
+import { CompsSection } from './forms/CompsSection';
 
 interface CreateListingFormProps {
   isOpen: boolean;
@@ -36,6 +37,9 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     removeAmenity,
     toggleFinancingOption,
     handleImagesChange,
+    addComp,
+    removeComp,
+    updateComp,
     resetForm,
   } = useListingForm(editListing);
 
@@ -72,6 +76,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
         formData.listingType,
         formData.address.city.toLowerCase(),
         formData.address.state.toLowerCase(),
+        formData.address.streetName.toLowerCase(),
         ...formData.features.map(f => f.toLowerCase()),
         ...formData.amenities.map(a => a.toLowerCase()),
       ].join(' ').split(' ').filter(tag => tag.length > 2);
@@ -145,6 +150,14 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
           <PricingAnalysisSection 
             formData={formData} 
             onChange={handleInputChange} 
+          />
+
+          <CompsSection 
+            formData={formData} 
+            onChange={handleInputChange}
+            onAddComp={addComp}
+            onRemoveComp={removeComp}
+            onUpdateComp={updateComp}
           />
 
           <AddressSection 

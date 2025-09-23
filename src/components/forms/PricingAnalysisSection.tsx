@@ -17,7 +17,7 @@ export function PricingAnalysisSection({ formData, onChange }: PricingAnalysisSe
           <input
             type="number"
             name="price"
-            value={formData.price}
+            value={formData.price ?? ''}
             onChange={onChange}
             required
             min="0"

@@ -68,7 +68,9 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
     }
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined) => {
+    if (price === undefined || price === null) return 'Price TBD';
+    
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -462,16 +464,10 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
             </div>
 
             {/* Investment Details */}
-            {(listing.investmentStrategy || listing.propertyCondition || listing.occupancyStatus || listing.monthlyRent) && (
+            {(listing.propertyCondition || listing.occupancyStatus || listing.monthlyRent) && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Investment Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {listing.investmentStrategy && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Strategy</p>
-                      <p className="text-gray-900 dark:text-white capitalize">{listing.investmentStrategy.replace('-', ' ')}</p>
-                    </div>
-                  )}
 
                   {listing.propertyCondition && (
                     <div>

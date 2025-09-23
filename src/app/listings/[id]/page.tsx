@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing } from '@/types/listing';
 import { getListing, toggleFavorite, incrementViewCount } from '@/lib/firestore/listings';
-import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Car, Star } from 'lucide-react';
+import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Car, Star, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 
 interface ListingDetailPageProps {
   params: Promise<{
@@ -17,6 +17,8 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const [showGalleryPopup, setShowGalleryPopup] = useState(false);
   
   const router = useRouter();
   const { user } = useAuthContext() as { user: any };
@@ -79,6 +81,41 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
       month: 'long',
       day: 'numeric',
     }).format(date);
+  };
+
+  const navigateImage = (direction: 'prev' | 'next') => {
+    if (!listing?.images || listing.images.length <= 1) return;
+    
+    if (direction === 'next') {
+      setImageIndex(prev => prev + 1 >= listing.images.length ? 0 : prev + 1);
+    } else {
+      setImageIndex(prev => prev - 1 < 0 ? listing.images.length - 1 : prev - 1);
+    }
+  };
+
+  const openPhotoViewer = (index?: number) => {
+    if (index !== undefined) {
+      setImageIndex(index);
+    }
+    setShowPhotoViewer(true);
+  };
+
+  const closePhotoViewer = () => {
+    setShowPhotoViewer(false);
+  };
+
+  const openGalleryPopup = () => {
+    setShowGalleryPopup(true);
+  };
+
+  const closeGalleryPopup = () => {
+    setShowGalleryPopup(false);
+  };
+
+  const openPhotoFromGallery = (index: number) => {
+    setImageIndex(index);
+    setShowGalleryPopup(false);
+    setShowPhotoViewer(true);
   };
 
   if (loading) {
@@ -158,25 +195,100 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
             {/* Image Gallery */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
               {listing.images && listing.images.length > 0 ? (
-                <div className="relative">
-                  <img
-                    src={listing.images[imageIndex]}
-                    alt={listing.title}
-                    className="w-full h-96 object-cover"
-                  />
-                  {listing.images.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                      {listing.images.map((_, index) => (
+                <div className="space-y-4">
+                  {/* Main Image */}
+                  <div className="relative group">
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => openPhotoViewer()}
+                    >
+                      <img
+                        src={listing.images[imageIndex]}
+                        alt={listing.title}
+                        className="w-full h-96 object-cover"
+                      />
+                      
+                      {/* Zoom icon overlay */}
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <ZoomIn className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Navigation arrows */}
+                    {listing.images.length > 1 && (
+                      <>
                         <button
-                          key={index}
-                          onClick={() => setImageIndex(index)}
-                          className={`w-3 h-3 rounded-full ${
-                            index === imageIndex 
-                              ? 'bg-white' 
-                              : 'bg-white/50'
-                          }`}
-                        />
-                      ))}
+                          onClick={() => navigateImage('prev')}
+                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                        >
+                          <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <button
+                          onClick={() => navigateImage('next')}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                        >
+                          <ChevronRight className="w-6 h-6" />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Image counter */}
+                    {listing.images.length > 1 && (
+                      <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                        {imageIndex + 1} / {listing.images.length}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Thumbnail Gallery */}
+                  {listing.images.length > 1 && (
+                    <div className="px-4 pb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                          All Photos ({listing.images.length})
+                        </h4>
+                        <button
+                          onClick={openGalleryPopup}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          View All
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-6 gap-2">
+                        {listing.images.slice(0, 12).map((image, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setImageIndex(index)}
+                            className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
+                              index === imageIndex
+                                ? 'border-blue-500'
+                                : 'border-transparent hover:border-gray-300'
+                            }`}
+                          >
+                            <img
+                              src={image}
+                              alt={`Photo ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                        
+                        {/* Show more indicator */}
+                        {listing.images.length > 12 && (
+                          <button
+                            onClick={openGalleryPopup}
+                            className="aspect-square rounded-lg bg-gray-100 dark:bg-gray-700 border-2 border-transparent hover:border-gray-300 flex items-center justify-center"
+                          >
+                            <div className="text-center">
+                              <div className="text-lg font-semibold text-gray-600 dark:text-gray-400">
+                                +{listing.images.length - 12}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">more</div>
+                            </div>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -509,6 +621,141 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Gallery Popup */}
+      {showGalleryPopup && listing?.images && listing.images.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">All Photos</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{listing.images.length} photos</p>
+              </div>
+              <button
+                onClick={closeGalleryPopup}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Scrollable Photo Grid */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {listing.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => openPhotoFromGallery(index)}
+                    className="group relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:shadow-lg transition-all"
+                  >
+                    <img
+                      src={image}
+                      alt={`Photo ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                    
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <ZoomIn className="w-8 h-8 text-white" />
+                    </div>
+                    
+                    {/* Photo number */}
+                    <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+                      {index + 1}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Viewer Modal */}
+      {showPhotoViewer && listing?.images && listing.images.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+          <div className="relative w-full h-full flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 text-white">
+              <div className="flex items-center space-x-4">
+                <h3 className="text-lg font-medium">{listing.title}</h3>
+                <span className="text-sm opacity-75">
+                  {imageIndex + 1} of {listing.images.length}
+                </span>
+              </div>
+              <button
+                onClick={closePhotoViewer}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Main Image Container */}
+            <div className="flex-1 flex items-center justify-center p-4">
+              <div className="relative max-w-7xl max-h-full">
+                <img
+                  src={listing.images[imageIndex]}
+                  alt={`Photo ${imageIndex + 1}`}
+                  className="max-w-full max-h-full object-contain"
+                />
+
+                {/* Navigation Arrows */}
+                {listing.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => navigateImage('prev')}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors"
+                    >
+                      <ChevronLeft className="w-8 h-8" />
+                    </button>
+                    <button
+                      onClick={() => navigateImage('next')}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors"
+                    >
+                      <ChevronRight className="w-8 h-8" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Thumbnail Strip */}
+            {listing.images.length > 1 && (
+              <div className="p-4 bg-black/20">
+                <div className="flex justify-center">
+                  <div className="flex space-x-2 overflow-x-auto max-w-full">
+                    {listing.images.map((image, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setImageIndex(index)}
+                        className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                          index === imageIndex
+                            ? 'border-white'
+                            : 'border-transparent hover:border-white/50'
+                        }`}
+                      >
+                        <img
+                          src={image}
+                          alt={`Thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Click outside to close */}
+          <div 
+            className="absolute inset-0 -z-10"
+            onClick={closePhotoViewer}
+          />
+        </div>
+      )}
     </div>
   );
 }

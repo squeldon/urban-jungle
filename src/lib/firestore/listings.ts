@@ -22,6 +22,7 @@ import {
 import { getFirestore } from 'firebase/firestore';
 import firebase_app from '@/firebase/config';
 import { PropertyListing, CreateListingData, UpdateListingData, ListingFilters } from '@/types/listing';
+import { deleteMultipleImages, isFirebaseStorageUrl } from '@/lib/firebase/storage';
 
 const db = getFirestore(firebase_app);
 const LISTINGS_COLLECTION = 'listings';
@@ -285,6 +286,25 @@ export async function updateListing(
       throw new Error('Unauthorized: You can only update your own listings');
     }
     
+    // If images are being updated, clean up removed images from storage
+    if (updateData.images && listing.images) {
+      const oldImages = listing.images || [];
+      const newImages = updateData.images || [];
+      const removedImages = oldImages.filter((url: string) => !newImages.includes(url));
+      
+      if (removedImages.length > 0) {
+        const firebaseStorageImages = removedImages.filter((url: string) => isFirebaseStorageUrl(url));
+        if (firebaseStorageImages.length > 0) {
+          try {
+            await deleteMultipleImages(firebaseStorageImages);
+          } catch (error) {
+            console.error('Error deleting removed images from storage:', error);
+            // Continue with update even if image cleanup fails
+          }
+        }
+      }
+    }
+    
     const updatedData = {
       ...updateData,
       updatedAt: Timestamp.now(),
@@ -313,6 +333,20 @@ export async function deleteListing(listingId: string, userId: string): Promise<
       throw new Error('Unauthorized: You can only delete your own listings');
     }
     
+    // Delete images from Firebase Storage if they exist
+    if (listing.images && Array.isArray(listing.images)) {
+      const firebaseStorageImages = listing.images.filter((url: string) => isFirebaseStorageUrl(url));
+      if (firebaseStorageImages.length > 0) {
+        try {
+          await deleteMultipleImages(firebaseStorageImages);
+        } catch (error) {
+          console.error('Error deleting images from storage:', error);
+          // Continue with listing deletion even if image cleanup fails
+        }
+      }
+    }
+    
+    // Delete the listing document
     await deleteDoc(docRef);
   } catch (error) {
     console.error('Error deleting listing:', error);

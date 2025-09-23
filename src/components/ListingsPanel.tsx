@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useListings } from '@/hooks/useListings';
 import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing } from '@/types/listing';
-import { Heart, Eye, MapPin, Home, Calendar } from 'lucide-react';
+import { Heart, Eye, MapPin, Home, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ListingsPanelProps {
   isMapOpen: boolean;
@@ -15,6 +15,7 @@ interface ListingsPanelProps {
 
 export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, filters }: ListingsPanelProps) {
   const [columns, setColumns] = useState(3);
+  const [cardImageIndexes, setCardImageIndexes] = useState<{[key: string]: number}>({});
   const { user } = useAuthContext() as { user: any };
   const router = useRouter();
   
@@ -98,6 +99,23 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
     }
   };
 
+  const handleImageNavigation = (listingId: string, direction: 'prev' | 'next', imageCount: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentIndex = cardImageIndexes[listingId] || 0;
+    let newIndex;
+    
+    if (direction === 'next') {
+      newIndex = currentIndex + 1 >= imageCount ? 0 : currentIndex + 1;
+    } else {
+      newIndex = currentIndex - 1 < 0 ? imageCount - 1 : currentIndex - 1;
+    }
+    
+    setCardImageIndexes(prev => ({
+      ...prev,
+      [listingId]: newIndex
+    }));
+  };
+
   const formatPrice = (price: number, listingType: string) => {
     const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -172,13 +190,55 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                     onClick={() => handleListingClick(listing)}
                   >
                     {/* Image container */}
-                    <div className="relative h-1/2 bg-gray-200 dark:bg-gray-700">
+                    <div className="relative h-1/2 bg-gray-200 dark:bg-gray-700 group">
                       {listing.images && listing.images.length > 0 ? (
-                        <img
-                          src={listing.images[0]}
-                          alt={listing.title}
-                          className="w-full h-full object-cover"
-                        />
+                        <>
+                          <img
+                            src={listing.images[cardImageIndexes[listing.id] || 0]}
+                            alt={listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                          
+                          {/* Photo navigation - only show on hover and if multiple images */}
+                          {listing.images.length > 1 && (
+                            <>
+                              {/* Previous image button */}
+                              <button
+                                onClick={(e) => handleImageNavigation(listing.id, 'prev', listing.images.length, e)}
+                                className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                              >
+                                <ChevronLeft className="w-3 h-3" />
+                              </button>
+                              
+                              {/* Next image button */}
+                              <button
+                                onClick={(e) => handleImageNavigation(listing.id, 'next', listing.images.length, e)}
+                                className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                              >
+                                <ChevronRight className="w-3 h-3" />
+                              </button>
+                              
+                              {/* Photo indicators - only visible on hover */}
+                              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {listing.images.map((_, index) => (
+                                  <div
+                                    key={index}
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      index === (cardImageIndexes[listing.id] || 0)
+                                        ? 'bg-white' 
+                                        : 'bg-white/50'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              
+                              {/* Photo counter - only visible on hover */}
+                              <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                {(cardImageIndexes[listing.id] || 0) + 1} / {listing.images.length}
+                              </div>
+                            </>
+                          )}
+                        </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Home className="w-6 h-6 text-gray-400" />
@@ -187,7 +247,7 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                       
                       {/* Listing Type Badge */}
                       {listing.listingType === 'wholesale' && (
-                        <div className="absolute top-2 left-2">
+                        <div className="absolute top-2 right-14">
                           <span className="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
                             WHOLESALE
                           </span>
@@ -197,7 +257,7 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                       {/* Favorite button */}
                       <button
                         onClick={(e) => handleFavoriteClick(listing, e)}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-white/80 hover:bg-white transition-colors"
+                        className="absolute top-2 right-2 p-1 rounded-full bg-white/80 hover:bg-white transition-colors z-10"
                       >
                         <Heart
                           className={`w-4 h-4 ${
@@ -297,17 +357,17 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                               {listing.investmentStrategy.replace('-', ' ')}
                             </span>
                           )}
+                          {squareSize < 200 && listing.bedrooms && (
+                            <span className="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                              {listing.bedrooms}bd/{listing.bathrooms}ba
+                            </span>
+                          )}
                         </div>
                         <div className={`flex items-center text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0 ${
                           squareSize >= 265 ? 'text-xs' : 'text-xs'
                         }`}>
                           <Eye className={`mr-1 ${squareSize >= 265 ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
                           <span>{listing.views}</span>
-                          {squareSize < 200 && listing.bedrooms && (
-                            <span className="ml-2 whitespace-nowrap">
-                              {listing.bedrooms}bd/{listing.bathrooms}ba
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>

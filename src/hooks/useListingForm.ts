@@ -168,6 +168,13 @@ export function useListingForm(editListing?: PropertyListing) {
     }));
   };
 
+  const handleImagesChange = (images: string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      images,
+    }));
+  };
+
   const resetForm = () => {
     setFormData(getInitialFormData());
   };
@@ -181,6 +188,7 @@ export function useListingForm(editListing?: PropertyListing) {
     addAmenity,
     removeAmenity,
     toggleFinancingOption,
+    handleImagesChange,
     resetForm,
   };
 }

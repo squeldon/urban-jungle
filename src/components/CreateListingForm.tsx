@@ -13,6 +13,7 @@ import { AddressSection } from './forms/AddressSection';
 import { DealTermsSection } from './forms/DealTermsSection';
 import { PropertyFeaturesSection } from './forms/PropertyFeaturesSection';
 import { ContactInfoSection } from './forms/ContactInfoSection';
+import { ImageUploadSection } from './forms/ImageUploadSection';
 
 interface CreateListingFormProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     addAmenity,
     removeAmenity,
     toggleFinancingOption,
+    handleImagesChange,
     resetForm,
   } = useListingForm(editListing);
 
@@ -133,6 +135,11 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
           <BasicInfoSection 
             formData={formData} 
             onChange={handleInputChange} 
+          />
+
+          <ImageUploadSection 
+            formData={formData} 
+            onImagesChange={handleImagesChange} 
           />
 
           <PricingAnalysisSection 

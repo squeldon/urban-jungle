@@ -47,7 +47,7 @@ export default function FilterPopup({
       <div className="fixed top-[53%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-[600px] max-w-[90vw] h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Filter Wholesale Properties
+            Filter Properties
           </h2>
           <button
             onClick={onClose}

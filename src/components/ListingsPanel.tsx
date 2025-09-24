@@ -245,7 +245,7 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                               </button>
                               
                               {/* Media indicators - only visible on hover */}
-                              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              {/* <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                 {listing.images.map((mediaUrl, index) => {
                                   const fileType = getFileTypeFromUrl(mediaUrl);
                                   const isVideo = fileType === 'video';
@@ -261,25 +261,13 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
                                     />
                                   );
                                 })}
-                              </div>
+                              </div> */}
                               
                               {/* Media counter - only visible on hover */}
                               <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                 {(cardImageIndexes[listing.id] || 0) + 1} / {listing.images.length}
                               </div>
                               
-                              {/* Media type indicator */}
-                              {(() => {
-                                const currentMediaUrl = listing.images[cardImageIndexes[listing.id] || 0];
-                                const fileType = getFileTypeFromUrl(currentMediaUrl);
-                                const isVideo = fileType === 'video';
-                                
-                                return isVideo && (
-                                  <div className="absolute top-2 right-16 bg-purple-600 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                    Video
-                                  </div>
-                                );
-                              })()}
                             </>
                           )}
                         </>

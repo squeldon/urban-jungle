@@ -41,24 +41,76 @@ export default function Header({
   onSquareSizeChange,
 }: HeaderProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [tempFilters, setTempFilters] = useState<Partial<FilterState>>({});
+
+  // Get current value (temp or actual)
+  const getCurrentFilterValue = (key: string) => {
+    return tempFilters[key as keyof FilterState] ?? filters[key as keyof FilterState];
+  };
+
+  // Update temporary filter value
+  const updateTempFilter = (key: string, value: any) => {
+    setTempFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Toggle array filter temporarily
+  const toggleTempArrayFilter = (key: string, value: string) => {
+    const currentArray = getCurrentFilterValue(key) as string[] || [];
+    const newArray = currentArray.includes(value)
+      ? currentArray.filter(item => item !== value)
+      : [...currentArray, value];
+    updateTempFilter(key, newArray);
+  };
+
+  // Apply temporary filters
+  const applyTempFilters = () => {
+    Object.entries(tempFilters).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        // For array filters, we need to set the entire array
+        const currentArray = filters[key as keyof FilterState] as string[] || [];
+        value.forEach(item => {
+          if (!currentArray.includes(item)) {
+            onToggleArrayFilter(key, item);
+          }
+        });
+        currentArray.forEach(item => {
+          if (!value.includes(item)) {
+            onToggleArrayFilter(key, item);
+          }
+        });
+      } else {
+        onUpdateFilter(key, value);
+      }
+    });
+    setTempFilters({});
+    setOpenDropdown(null);
+  };
 
   const renderRangeDropdown = (filterKey: string, label: string, minKey: string, maxKey: string) => (
     <div className="absolute top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[280px] z-50">
-      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{label}</div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</div>
+        <button
+          onClick={applyTempFilters}
+          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors"
+        >
+          Apply
+        </button>
+      </div>
       <div className="flex gap-2 items-center">
         <input
           type="number"
           placeholder="Min"
-          value={filters[minKey as keyof FilterState] as string}
-          onChange={(e) => onUpdateFilter(minKey, e.target.value)}
+          value={getCurrentFilterValue(minKey) as string}
+          onChange={(e) => updateTempFilter(minKey, e.target.value)}
           className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
         />
         <span className="text-gray-500 dark:text-gray-400 text-sm">to</span>
         <input
           type="number"
           placeholder="Max"
-          value={filters[maxKey as keyof FilterState] as string}
-          onChange={(e) => onUpdateFilter(maxKey, e.target.value)}
+          value={getCurrentFilterValue(maxKey) as string}
+          onChange={(e) => updateTempFilter(maxKey, e.target.value)}
           className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
         />
       </div>
@@ -67,10 +119,18 @@ export default function Header({
 
   const renderSelectDropdown = (filterKey: string, label: string, options: { value: string; label: string }[]) => (
     <div className="absolute top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[200px] z-50">
-      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{label}</div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</div>
+        <button
+          onClick={applyTempFilters}
+          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors"
+        >
+          Apply
+        </button>
+      </div>
       <select
-        value={filters[filterKey as keyof FilterState] as string}
-        onChange={(e) => onUpdateFilter(filterKey, e.target.value)}
+        value={getCurrentFilterValue(filterKey) as string}
+        onChange={(e) => updateTempFilter(filterKey, e.target.value)}
         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
       >
         {options.map((option) => (
@@ -82,14 +142,22 @@ export default function Header({
 
   const renderCheckboxDropdown = (filterKey: string, label: string, options: { value: string; label: string }[]) => (
     <div className="absolute top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[250px] max-w-[300px] z-50">
-      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{label}</div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</div>
+        <button
+          onClick={applyTempFilters}
+          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors"
+        >
+          Apply
+        </button>
+      </div>
       <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
         {options.map((option) => (
           <label key={option.value} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
             <input
               type="checkbox"
-              checked={(filters[filterKey as keyof FilterState] as string[]).includes(option.value)}
-              onChange={() => onToggleArrayFilter(filterKey, option.value)}
+              checked={(getCurrentFilterValue(filterKey) as string[])?.includes(option.value) || false}
+              onChange={() => toggleTempArrayFilter(filterKey, option.value)}
               className="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
@@ -365,7 +433,13 @@ export default function Header({
               >
                 <button
                   onClick={() => {
-                    setOpenDropdown(openDropdown === `filter-${index}` ? null : `filter-${index}`);
+                    if (openDropdown === `filter-${index}`) {
+                      setOpenDropdown(null);
+                      setTempFilters({});
+                    } else {
+                      setOpenDropdown(`filter-${index}`);
+                      setTempFilters({});
+                    }
                   }}
                   className="hover:underline"
                 >
@@ -376,6 +450,7 @@ export default function Header({
                     e.stopPropagation();
                     onClearFilter(filter.key);
                     setOpenDropdown(null);
+                    setTempFilters({});
                   }}
                   className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5 transition-colors"
                 >
@@ -401,7 +476,10 @@ export default function Header({
                     {/* Click-away overlay */}
                     <div
                       className="fixed inset-0 z-40"
-                      onClick={() => setOpenDropdown(null)}
+                      onClick={() => {
+                        setOpenDropdown(null);
+                        setTempFilters({});
+                      }}
                     />
                     {getDropdownContent(filter)}
                   </>

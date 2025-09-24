@@ -29,6 +29,7 @@ export default function Home() {
     getActiveFilters,
     resetAllFilters,
     getListingFilters,
+    replaceFilters,
   } = useFilters();
 
   // Check authentication status on component mount and user changes
@@ -102,6 +103,7 @@ export default function Home() {
         onUpdateFilter={updateFilter}
         onToggleArrayFilter={toggleArrayFilter}
         onResetFilters={resetAllFilters}
+        onReplaceFilters={replaceFilters}
       />
 
       {/* Main content area below header */}

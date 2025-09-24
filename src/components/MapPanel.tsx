@@ -23,8 +23,8 @@ export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeigh
         className={`
           fixed z-40 transition-all duration-300 ease-in-out
           ${isFullscreen
-            ? 'right-4 bottom-4 w-[calc(100vw-2rem)]'
-            : 'right-6 bottom-6 w-[calc(40vw-1.5rem)] lg:w-[calc(40vw-1.5rem)]'
+            ? 'right-4 bottom-4 w-[calc(100vw-3rem)]'
+            : 'right-4 bottom-6 w-[calc(40vw-1.5rem)] lg:w-[calc(40vw-1.5rem)]'
           }
         `}
         style={{

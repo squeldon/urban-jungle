@@ -27,7 +27,7 @@ export interface ActiveFilter {
 
 const FILTERS_STORAGE_KEY = 'urban-jungle-filters';
 
-const getDefaultFilters = (): FilterState => ({
+export const getDefaultFilters = (): FilterState => ({
   priceMin: '',
   priceMax: '',
   arvMin: '',
@@ -45,6 +45,26 @@ const getDefaultFilters = (): FilterState => ({
   financingOptions: [],
 });
 
+export const sanitizeFilters = (input: Partial<FilterState>): FilterState => {
+  const defaults = getDefaultFilters();
+  const sanitized: FilterState = { ...defaults };
+
+  (Object.keys(defaults) as (keyof FilterState)[]).forEach((key) => {
+    const defaultValue = defaults[key];
+    const incoming = input[key];
+
+    if (Array.isArray(defaultValue)) {
+      (sanitized[key] as string[]) = Array.isArray(incoming)
+        ? incoming.filter((value): value is string => typeof value === 'string')
+        : [...defaultValue];
+    } else {
+      (sanitized[key] as string) = typeof incoming === 'string' ? incoming : defaultValue;
+    }
+  });
+
+  return sanitized;
+};
+
 const loadFiltersFromStorage = (): FilterState => {
   if (typeof window === 'undefined') {
     return getDefaultFilters();
@@ -54,25 +74,7 @@ const loadFiltersFromStorage = (): FilterState => {
     const stored = localStorage.getItem(FILTERS_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Validate that all required properties exist and have correct types
-      const defaults = getDefaultFilters();
-      const validated: FilterState = { ...defaults };
-      
-      // Safely copy over stored values with type checking
-      Object.keys(defaults).forEach(key => {
-        const typedKey = key as keyof FilterState;
-        if (parsed[typedKey] !== undefined) {
-          if (Array.isArray(defaults[typedKey])) {
-            // Handle array properties
-            (validated as any)[typedKey] = Array.isArray(parsed[typedKey]) ? parsed[typedKey] : defaults[typedKey];
-          } else {
-            // Handle string properties
-            (validated as any)[typedKey] = typeof parsed[typedKey] === 'string' ? parsed[typedKey] : defaults[typedKey];
-          }
-        }
-      });
-      
-      return validated;
+      return sanitizeFilters(parsed ?? {});
     }
   } catch (error) {
     console.warn('Error loading filters from localStorage:', error);
@@ -85,7 +87,10 @@ const saveFiltersToStorage = (filters: FilterState) => {
   if (typeof window === 'undefined') return;
   
   try {
-    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+    localStorage.setItem(
+      FILTERS_STORAGE_KEY,
+      JSON.stringify(sanitizeFilters(filters))
+    );
   } catch (error) {
     console.warn('Error saving filters to localStorage:', error);
   }
@@ -110,11 +115,11 @@ export const useFilters = () => {
   }, [filters, isInitialized]);
 
   const updateFilter = (key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const toggleArrayFilter = (key: string, value: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [key]: prev[key as keyof typeof prev].includes(value)
         ? (prev[key as keyof typeof prev] as string[]).filter(item => item !== value)
@@ -125,17 +130,17 @@ export const useFilters = () => {
   const clearFilter = (key: string) => {
     const arrayFilters = ['propertyTypes', 'listingTypes', 'propertyConditions', 'occupancyStatuses', 'financingOptions'];
     if (arrayFilters.includes(key)) {
-      setFilters(prev => ({ ...prev, [key]: [] }));
+      setFilters((prev) => ({ ...prev, [key]: [] }));
     } else if (key.includes('price') || key.includes('Price')) {
-      setFilters(prev => ({ ...prev, priceMin: '', priceMax: '' }));
+      setFilters((prev) => ({ ...prev, priceMin: '', priceMax: '' }));
     } else if (key.includes('arv') || key.includes('ARV')) {
-      setFilters(prev => ({ ...prev, arvMin: '', arvMax: '' }));
+      setFilters((prev) => ({ ...prev, arvMin: '', arvMax: '' }));
     } else if (key.includes('repair') || key.includes('Repair')) {
-      setFilters(prev => ({ ...prev, repairCostsMin: '', repairCostsMax: '' }));
+      setFilters((prev) => ({ ...prev, repairCostsMin: '', repairCostsMax: '' }));
     } else if (key.includes('squareFeet') || key.includes('Sqft')) {
-      setFilters(prev => ({ ...prev, squareFeetMin: '', squareFeetMax: '' }));
+      setFilters((prev) => ({ ...prev, squareFeetMin: '', squareFeetMax: '' }));
     } else {
-      setFilters(prev => ({ ...prev, [key]: '' }));
+      setFilters((prev) => ({ ...prev, [key]: '' }));
     }
   };
 
@@ -229,6 +234,10 @@ export const useFilters = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(FILTERS_STORAGE_KEY);
     }
+  };
+  
+  const replaceFilters = (nextFilters: FilterState) => {
+    setFilters(sanitizeFilters(nextFilters));
   };
 
   const getListingFilters = (): ListingFilters | undefined => {
@@ -324,5 +333,6 @@ export const useFilters = () => {
     getActiveFilters,
     resetAllFilters,
     getListingFilters,
+    replaceFilters,
   };
 };

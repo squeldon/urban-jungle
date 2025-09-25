@@ -2,9 +2,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { createListing, updateListing } from '@/lib/firestore/listings';
-import { CreateListingData, PropertyListing, UpdateListingData } from '@/types/listing';
+import { CreateListingData, PropertyListing, UpdateListingData, PropertyDraft, CreateDraftData } from '@/types/listing';
 import { X, ChevronRight } from 'lucide-react';
 import { useListingForm } from '@/hooks/useListingForm';
+import { useDrafts } from '@/hooks/useDrafts';
+import ExitConfirmationModal from './ExitConfirmationModal';
 
 // Form section components
 import { BasicInfoSection } from './forms/BasicInfoSection';
@@ -21,16 +23,17 @@ interface CreateListingFormProps {
   onClose: () => void;
   onSuccess: () => void;
   editListing?: PropertyListing; // Optional listing to edit
+  editDraft?: PropertyDraft; // Optional draft to edit
 }
 
-export default function CreateListingForm({ isOpen, onClose, onSuccess, editListing }: CreateListingFormProps) {
+export default function CreateListingForm({ isOpen, onClose, onSuccess, editListing, editDraft }: CreateListingFormProps) {
   const { user } = useAuthContext() as { user: any };
+  const { createDraft, updateDraft } = useDrafts();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentSection, setCurrentSection] = useState('basic-info');
-  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
-  const [draftSaved, setDraftSaved] = useState(false);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
 
   // LocalStorage utilities for form persistence
   const FORM_STORAGE_KEY = 'create_listing_draft';
@@ -79,6 +82,65 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   
+  // Convert draft to listing format for the form hook
+  const convertDraftToListingFormat = (draft: PropertyDraft): PropertyListing | undefined => {
+    if (!draft) return undefined;
+    
+    return {
+      id: draft.id,
+      title: draft.title || '',
+      description: draft.description || '',
+      price: draft.price,
+      propertyType: draft.propertyType || 'house',
+      listingType: draft.listingType || 'wholesale',
+      bedrooms: draft.bedrooms,
+      bathrooms: draft.bathrooms,
+      squareFeet: draft.squareFeet,
+      lotSize: draft.lotSize,
+      yearBuilt: draft.yearBuilt,
+      arv: draft.arv,
+      repairCosts: draft.repairCosts,
+      wholesaleFee: draft.wholesaleFee,
+      propertyCondition: draft.propertyCondition,
+      occupancyStatus: draft.occupancyStatus,
+      monthlyRent: draft.monthlyRent,
+      address: {
+        houseNumber: draft.address?.houseNumber || '',
+        streetName: draft.address?.streetName || '',
+        street: draft.address?.street || '',
+        city: draft.address?.city || '',
+        state: draft.address?.state || '',
+        zipCode: draft.address?.zipCode || '',
+        country: draft.address?.country || 'USA',
+      },
+      coordinates: draft.coordinates,
+      features: draft.features || [],
+      amenities: draft.amenities || [],
+      images: draft.images || [],
+      videos: draft.videos,
+      media: draft.media,
+      virtualTourUrl: draft.virtualTourUrl,
+      contactInfo: {
+        name: draft.contactInfo?.name || '',
+        phone: draft.contactInfo?.phone,
+        email: draft.contactInfo?.email || '',
+        isOwner: draft.contactInfo?.isOwner ?? true,
+        agencyName: draft.contactInfo?.agencyName,
+        isWholesaler: draft.contactInfo?.isWholesaler,
+      },
+      dealTerms: draft.dealTerms,
+      comps: draft.comps,
+      status: 'active' as const,
+      isVerified: false,
+      views: 0,
+      favorites: [],
+      tags: [],
+      createdAt: draft.createdAt,
+      updatedAt: draft.updatedAt,
+      createdBy: draft.createdBy,
+    };
+  };
+
   // Load saved form data if available
   const { data: savedFormData } = loadFormFromStorage();
 
@@ -96,9 +158,11 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     updateComp,
     resetForm,
     setFormData,
-  } = useListingForm(editListing, savedFormData);
+  } = useListingForm(editListing || (editDraft ? convertDraftToListingFormat(editDraft) : undefined), savedFormData);
 
   const isEditMode = !!editListing;
+  const isDraftEditMode = !!editDraft;
+  const isEditingMode = isEditMode || isDraftEditMode;
 
   // Navigation sections
   const sections = [
@@ -164,96 +228,88 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
   }, [sections]);
 
 
-  // Save form data when it changes and form is open
-  useEffect(() => {
-    if (isOpen && !editListing && Object.keys(formData).length > 0) {
-      // Don't save empty form data
-      const hasContent = formData.title || formData.description || formData.price ||
-                        formData.address.city || formData.address.state ||
-                        formData.features.length > 0 || formData.images.length > 0;
-      if (hasContent) {
-        saveFormToStorage(cleanObject(formData));
-      }
-    }
-  }, [formData, isOpen, editListing]);
-
-  // Handle form close - clear storage only if intentionally closed
-  const handleClose = (isIntentional: boolean) => {
-    if (isIntentional) {
-      clearFormFromStorage();
-    }
-    onClose();
-  };
-
-  // Check if form has content worth saving
+  // Helper function to check if form has content
   const hasFormContent = () => {
     return formData.title || formData.description || formData.price ||
-           formData.address.city || formData.address.state ||
+           (formData.address && (formData.address.city || formData.address.state || formData.address.streetName)) ||
            formData.features.length > 0 || formData.images.length > 0;
   };
 
-  // Show confirmation popup when trying to close
-  const handleCloseWithConfirmation = () => {
-    if (hasFormContent() && !isEditMode) {
-      setShowCloseConfirmation(true);
-    } else {
-      handleClose(true);
+  // Save form data when it changes and form is open (only for new listings, not editing)
+  useEffect(() => {
+    if (isOpen && !isEditingMode && Object.keys(formData).length > 0) {
+      if (hasFormContent()) {
+        saveFormToStorage(cleanObject(formData));
+      }
     }
-  };
+  }, [formData, isOpen, isEditingMode]);
 
-  // Save draft function
-  const handleSaveDraft = async () => {
-    if (!hasFormContent()) {
-      setError('Please add some content before saving as draft');
+  // Handle saving as draft
+  const handleSaveAsDraft = async () => {
+    if (!user) {
+      setError('You must be logged in to save drafts');
       return;
     }
 
-    setSavingDraft(true);
+    setIsSavingDraft(true);
+    setError(null);
+
     try {
-      const cleanedData = cleanObject(formData);
+      const cleanFormData = cleanObject(formData);
       
-      // Save to current draft storage
-      saveFormToStorage(cleanedData);
-      
-      // Also save to drafts collection
-      const DRAFTS_STORAGE_KEY = 'listing_drafts';
-      const existingDrafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '[]');
-      const draftId = Date.now().toString();
-      
-      const newDraft = {
-        id: draftId,
-        ...cleanedData,
-        lastModified: new Date().toISOString(),
-      };
-      
-      existingDrafts.unshift(newDraft);
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(existingDrafts));
-      
-      setDraftSaved(true);
-      setTimeout(() => setDraftSaved(false), 3000); // Hide success message after 3 seconds
+      if (isDraftEditMode && editDraft) {
+        // Update existing draft
+        await updateDraft(editDraft.id, cleanFormData);
+      } else {
+        // Create new draft
+        const draftData: CreateDraftData = {
+          ...cleanFormData,
+          createdBy: user.uid,
+          draftName: formData.title || 'Untitled Draft',
+        };
+        await createDraft(draftData);
+      }
+
+      clearFormFromStorage();
+      resetForm();
+      onSuccess();
+      onClose();
     } catch (err) {
-      setError('Failed to save draft');
+      setError(err instanceof Error ? err.message : 'Failed to save draft');
     } finally {
-      setSavingDraft(false);
+      setIsSavingDraft(false);
     }
   };
 
-  // Handle confirmation popup choices
-  const handleConfirmationChoice = (choice: 'save' | 'discard' | 'cancel') => {
-    setShowCloseConfirmation(false);
-    
-    switch (choice) {
-      case 'save':
-        handleSaveDraft();
-        setTimeout(() => handleClose(false), 500); // Close after saving
-        break;
-      case 'discard':
-        handleClose(true);
-        break;
-      case 'cancel':
-        // Do nothing, just close the popup
-        break;
+  // Handle form close - show confirmation if there are unsaved changes
+  const handleClose = () => {
+    // If editing a draft or listing, just close without confirmation
+    if (isEditingMode) {
+      onClose();
+      return;
     }
+
+    // If there's content, show confirmation modal
+    if (hasFormContent()) {
+      setShowExitConfirmation(true);
+    } else {
+      clearFormFromStorage();
+      onClose();
+    }
+  };
+
+  // Handle discard changes
+  const handleDiscardChanges = () => {
+    clearFormFromStorage();
+    resetForm();
+    setShowExitConfirmation(false);
+    onClose();
+  };
+
+  // Handle save draft from exit confirmation
+  const handleSaveDraftFromExit = async () => {
+    await handleSaveAsDraft();
+    setShowExitConfirmation(false);
   };
 
   const cleanObject = (obj: any): any => {
@@ -272,7 +328,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     e.preventDefault();
     
     if (!user) {
-      setError(`You must be logged in to ${isEditMode ? 'update' : 'create'} a listing`);
+      setError(`You must be logged in to ${isEditMode ? 'update' : isDraftEditMode ? 'publish' : 'create'} a listing`);
       return;
     }
 
@@ -302,6 +358,15 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
           tags,
         };
         await updateListing(editListing.id, updateData, user.uid);
+      } else if (isDraftEditMode && editDraft) {
+        // Convert draft to listing (publish draft)
+        const listingData: CreateListingData = {
+          ...cleanFormData,
+          tags,
+        };
+        await createListing(listingData, user.uid);
+        // Delete the draft after successful publishing
+        // Note: This will be handled in the profile page or we could add delete draft functionality here
       } else {
         // Create new listing
         const listingData: CreateListingData = {
@@ -311,22 +376,13 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
         await createListing(listingData, user.uid);
       }
       
-      // Clear drafts from collection when successfully creating a listing
-      if (!isEditMode) {
-        try {
-          const DRAFTS_STORAGE_KEY = 'listing_drafts';
-          localStorage.removeItem(DRAFTS_STORAGE_KEY);
-        } catch (error) {
-          console.warn('Failed to clear drafts collection:', error);
-        }
-      }
-      
       onSuccess();
-      handleClose(false); // Don't clear storage on successful submit
+      clearFormFromStorage(); // Clear storage on successful submit
       resetForm();
+      onClose();
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'create'} listing`);
+      setError(err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : isDraftEditMode ? 'publish' : 'create'} listing`);
     } finally {
       setLoading(false);
     }
@@ -362,10 +418,10 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
           <div ref={headerRef} className="sticky top-0 bg-white dark:bg-gray-800 p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {isEditMode ? 'Edit Listing' : 'Create Property Listing'}
+                {isEditMode ? 'Edit Listing' : isDraftEditMode ? 'Edit Draft' : 'Create Property Listing'}
               </h2>
               <button
-                onClick={handleCloseWithConfirmation}
+                onClick={handleClose}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -378,12 +434,6 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                   <p className="text-red-800 dark:text-red-200">{error}</p>
-                </div>
-              )}
-
-              {draftSaved && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                  <p className="text-green-800 dark:text-green-200">Draft saved successfully!</p>
                 </div>
               )}
 
@@ -478,29 +528,35 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
               <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
-                  onClick={handleCloseWithConfirmation}
+                  onClick={handleClose}
                   className="px-6 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Cancel
                 </button>
-                {!isEditMode && (
+                
+                {/* Save as Draft button - only show for new listings or editing drafts */}
+                {(!isEditMode) && (
                   <button
                     type="button"
-                    onClick={handleSaveDraft}
-                    disabled={savingDraft || !hasFormContent()}
+                    onClick={handleSaveAsDraft}
+                    disabled={loading || isSavingDraft}
                     className="px-6 py-2 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {savingDraft ? 'Saving...' : 'Save as Draft'}
+                    {isSavingDraft 
+                      ? 'Saving Draft...' 
+                      : (isDraftEditMode ? 'Update Draft' : 'Save as Draft')
+                    }
                   </button>
                 )}
+                
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || isSavingDraft}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading 
-                    ? (isEditMode ? 'Updating...' : 'Creating...') 
-                    : (isEditMode ? 'Update Listing' : 'Create Listing')
+                    ? (isEditMode ? 'Updating...' : isDraftEditMode ? 'Publishing...' : 'Creating...') 
+                    : (isEditMode ? 'Update Listing' : isDraftEditMode ? 'Publish Draft' : 'Create Listing')
                   }
                 </button>
               </div>
@@ -509,39 +565,14 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
         </div>
       </div>
 
-      {/* Confirmation Popup */}
-      {showCloseConfirmation && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Cancel without saving?
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              You have unsaved changes. Would you like to save your progress as a draft before closing?
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => handleConfirmationChoice('cancel')}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Keep Editing
-              </button>
-              <button
-                onClick={() => handleConfirmationChoice('discard')}
-                className="px-4 py-2 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-              >
-                Discard Changes
-              </button>
-              <button
-                onClick={() => handleConfirmationChoice('save')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Save as Draft
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Exit Confirmation Modal */}
+      <ExitConfirmationModal
+        isOpen={showExitConfirmation}
+        onClose={() => setShowExitConfirmation(false)}
+        onDiscardChanges={handleDiscardChanges}
+        onSaveAsDraft={handleSaveDraftFromExit}
+        isSaving={isSavingDraft}
+      />
     </div>
   );
 }

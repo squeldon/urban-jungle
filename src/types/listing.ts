@@ -146,3 +146,102 @@ export interface CreateListingData extends Omit<PropertyListing, 'id' | 'created
 export interface UpdateListingData extends Partial<Omit<PropertyListing, 'id' | 'createdBy' | 'createdAt'>> {
   // All fields except id, createdBy, and createdAt are optional for updates
 }
+
+// Draft-related interfaces
+export interface PropertyDraft {
+  id: string;
+  title?: string;
+  description?: string;
+  price?: number;
+  propertyType?: 'house' | 'apartment' | 'condo' | 'townhouse' | 'duplex' | 'triplex' | 'fourplex' | 'land' | 'commercial';
+  listingType?: 'wholesale' | 'sale' | 'rent';
+  
+  // Property details
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFeet?: number;
+  lotSize?: number;
+  yearBuilt?: number;
+  
+  // Wholesale-specific fields
+  arv?: number;
+  repairCosts?: number;
+  wholesaleFee?: number;
+  propertyCondition?: 'excellent' | 'good' | 'fair' | 'needs-cosmetic' | 'needs-full-rehab' | 'tear-down';
+  occupancyStatus?: 'vacant' | 'owner-occupied' | 'tenant-occupied' | 'partially-occupied';
+  monthlyRent?: number;
+  
+  // Location
+  address?: {
+    houseNumber?: string;
+    streetName?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  
+  // Features and amenities
+  features?: string[];
+  amenities?: string[];
+  
+  // Media
+  images?: string[];
+  videos?: string[];
+  media?: string[];
+  virtualTourUrl?: string;
+  
+  // Contact information
+  contactInfo?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    isOwner?: boolean;
+    agencyName?: string;
+    isWholesaler?: boolean;
+  };
+  
+  // Deal terms
+  dealTerms?: {
+    financingOptions?: ('cash-only' | 'seller-financing' | 'hard-money' | 'conventional' | 'private-money')[];
+    earnestMoneyDeposit?: number;
+    proofOfFundsRequired?: boolean;
+    showingInstructions?: string;
+    appointmentRequired?: boolean;
+    accessRestrictions?: string;
+  };
+  
+  // Comparable sales data
+  comps?: {
+    address: string;
+    salePrice: number;
+    saleDate: string;
+    squareFeet?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    daysonMarket?: number;
+    distanceFromSubject?: number;
+    notes?: string;
+  }[];
+  
+  // Metadata
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  draftName?: string; // Optional custom name for the draft
+}
+
+// For creating new drafts
+export interface CreateDraftData extends Omit<PropertyDraft, 'id' | 'createdAt' | 'updatedAt'> {
+  // All fields except auto-generated ones
+}
+
+// For updating drafts
+export interface UpdateDraftData extends Partial<Omit<PropertyDraft, 'id' | 'createdBy' | 'createdAt'>> {
+  // All fields except id, createdBy, and createdAt are optional for updates
+}

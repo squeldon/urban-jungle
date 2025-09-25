@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { CreateListingData, PropertyListing } from '@/types/listing';
 
 export function useListingForm(editListing?: PropertyListing, savedData?: any) {
   const { user } = useAuthContext() as { user: any };
+  const initializedRef = useRef(false);
+  const lastListingIdRef = useRef<string | undefined>(undefined);
   
   const getInitialFormData = (): CreateListingData => ({
     title: '',
@@ -99,7 +101,8 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
     return getInitialFormData();
   };
 
-  const getInitialData = (): CreateListingData => {
+  // Memoize the initial form data to prevent recreation on every render
+  const initialFormData = useMemo(() => {
     // If we have saved data and no edit listing, use saved data
     if (savedData && !editListing) {
       return {
@@ -112,16 +115,30 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
       };
     }
     return initializeFormData(editListing);
-  };
+  }, [editListing?.id, user?.uid]); // Only depend on stable IDs, not entire objects
 
-  const [formData, setFormData] = useState<CreateListingData>(getInitialData());
+  const [formData, setFormData] = useState<CreateListingData>(initialFormData);
 
+  // Update form data when editListing changes (for editing mode)
   useEffect(() => {
-    // Only reset if we don't have saved data or if it's an edit
-    if (!savedData || editListing) {
-      setFormData(initializeFormData(editListing));
+    const currentListingId = editListing?.id;
+    
+    // Reset the initialized flag when switching between different listings or modes
+    if (currentListingId !== lastListingIdRef.current) {
+      initializedRef.current = false;
+      lastListingIdRef.current = currentListingId;
     }
-  }, [editListing, user, savedData]);
+    
+    // Only update if we haven't initialized yet for this specific listing/mode
+    if (!initializedRef.current) {
+      if (editListing) {
+        setFormData(initializeFormData(editListing));
+      } else {
+        setFormData(initialFormData);
+      }
+      initializedRef.current = true;
+    }
+  }, [editListing?.id, initialFormData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -268,6 +285,8 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
   };
 
   const resetForm = () => {
+    initializedRef.current = false;
+    lastListingIdRef.current = undefined;
     setFormData(getInitialFormData());
   };
 

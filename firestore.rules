@@ -67,6 +67,30 @@ service cloud.firestore {
       allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Rules for property drafts
+    match /drafts/{draftId} {
+      // Users can only read their own drafts
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.createdBy;
+      
+      // Only authenticated users can create drafts
+      allow create: if request.auth != null && 
+                       request.auth.uid == request.resource.data.createdBy &&
+                       request.resource.data.keys().hasAll(['createdBy', 'createdAt', 'updatedAt']);
+      
+      // Users can update their own drafts
+      allow update: if request.auth != null && 
+                       request.auth.uid == resource.data.createdBy &&
+                       // Prevent updating createdBy, createdAt fields
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdAt']) &&
+                       // Ensure updatedAt is present and is a timestamp
+                       request.resource.data.updatedAt is timestamp;
+      
+      // Users can only delete their own drafts
+      allow delete: if request.auth != null && 
+                       request.auth.uid == resource.data.createdBy;
+    }
+    
     // Deny all other document access
     match /{document=**} {
       allow read, write: if false;

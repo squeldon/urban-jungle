@@ -1,13 +1,9 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react';
 import { FilterState } from '@/hooks/useFilters';
+import { useFilterPresets } from '@/hooks/useFilterPresets';
+import { FilterPreset } from '@/lib/firestore/filterPresets';
 import { useAuthContext } from '@/context/AuthContext';
-import {
-  getFilterPresets,
-  saveFilterPreset,
-  deleteFilterPreset,
-  FilterPreset,
-} from '@/lib/firestore/filterPresets';
 
 import FilterPresets from './FilterPresets';
 import PriceFilters from './PriceFilters';
@@ -37,10 +33,8 @@ export default function FilterPopup({
   onReplaceFilters,
 }: FilterPopupProps) {
   const { user } = useAuthContext() as { user: { uid: string } | null };
-  const [presets, setPresets] = useState<FilterPreset[]>([]);
-  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
+  const { presets, isLoadingPresets, errorMessage, savePreset, deletePreset } = useFilterPresets();
   const [isSavingPreset, setIsSavingPreset] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPresetNameFormOpen, setIsPresetNameFormOpen] = useState(false);
   const [presetNameInput, setPresetNameInput] = useState('');
   
@@ -68,41 +62,6 @@ export default function FilterPopup({
     };
   }, [isOpen]);
 
-  // Load presets when popup opens and user is authenticated
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadPresets() {
-      if (!user || !isOpen) {
-        setPresets([]);
-        return;
-      }
-
-      setIsLoadingPresets(true);
-      setErrorMessage(null);
-      try {
-        const fetchedPresets = await getFilterPresets(user.uid);
-        if (isMounted) {
-          setPresets(fetchedPresets);
-        }
-      } catch (error) {
-        console.error('Failed to load filter presets:', error);
-        if (isMounted) {
-          setErrorMessage('Unable to load saved options right now.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingPresets(false);
-        }
-      }
-    }
-
-    loadPresets();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user, isOpen]);
 
   const hasAuth = useMemo(() => Boolean(user?.uid), [user]);
 
@@ -159,23 +118,16 @@ export default function FilterPopup({
   };
 
   const handleDeletePreset = async (presetId: string) => {
-    if (!user?.uid) {
-      return;
-    }
-
     try {
-      await deleteFilterPreset(user.uid, presetId);
-      setPresets((current) => current.filter((preset) => preset.id !== presetId));
+      await deletePreset(presetId);
     } catch (error) {
-      console.error('Failed to delete preset', error);
-      setErrorMessage('Could not delete preset. Please try again.');
+      // Error handling is managed by the hook
     }
   };
 
   const handleOpenPresetForm = () => {
     setIsPresetNameFormOpen(true);
     setPresetNameInput('');
-    setErrorMessage(null);
   };
 
   const handleCancelPresetForm = () => {
@@ -186,45 +138,23 @@ export default function FilterPopup({
   const handleSavePreset = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!user?.uid) {
-      setErrorMessage('You need an account to save presets.');
-      return;
-    }
-
     const presetName = presetNameInput.trim();
     if (!presetName) {
-      setErrorMessage('Preset name cannot be empty.');
       return;
     }
 
     setIsSavingPreset(true);
-    setErrorMessage(null);
 
     try {
       const existingPreset = presets.find(
         (preset) => preset.name.toLowerCase() === presetName.toLowerCase()
       );
 
-      const presetId = await saveFilterPreset(user.uid, presetName, localFilters, existingPreset?.id);
-      const updatedPreset: FilterPreset = {
-        id: presetId,
-        name: presetName,
-        filters: localFilters,
-        createdAt: existingPreset?.createdAt || new Date(),
-        updatedAt: new Date(),
-      };
-
-      setPresets((current) => {
-        if (existingPreset) {
-          return current.map((preset) => (preset.id === existingPreset.id ? updatedPreset : preset));
-        }
-        return [updatedPreset, ...current];
-      });
+      await savePreset(presetName, localFilters, existingPreset?.id);
       setIsPresetNameFormOpen(false);
       setPresetNameInput('');
     } catch (error) {
-      console.error('Failed to save preset:', error);
-      setErrorMessage('Unable to save preset. Try again later.');
+      // Error handling is managed by the hook
     } finally {
       setIsSavingPreset(false);
     }

@@ -133,8 +133,8 @@ export default function Header({
         </div>
 
         {/* Centered Search Bar */}
-        <div className="flex justify-center flex-1">
-          <div className="flex items-center gap-2 w-full max-w-lg">
+        <div className="flex justify-center flex-[2]">
+          <div className="flex items-center gap-2 w-full">
             <SearchBar onLocationSelect={onLocationSelect} />
             
             {/* Filter Toggle Button */}

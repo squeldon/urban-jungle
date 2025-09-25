@@ -182,7 +182,7 @@ export default function SearchBar({ onLocationSelect }: SearchBarProps) {
     <form onSubmit={handleSearchSubmit} className="relative flex-1" ref={searchRef}>
       <input
         type="text"
-        placeholder="Search location (press Enter)"
+        placeholder="Search location"
         value={searchQuery}
         onChange={handleSearchChange}
         onKeyDown={handleSearchKeyDown}

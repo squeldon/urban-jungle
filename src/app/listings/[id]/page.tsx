@@ -5,7 +5,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing } from '@/types/listing';
 import { getListing, toggleFavorite, incrementViewCount } from '@/lib/firestore/listings';
 import { getFileTypeFromUrl } from '@/lib/firebase/storage';
-import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Car, Star, ChevronLeft, ChevronRight, X, ZoomIn, Play } from 'lucide-react';
+import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Fence, Star, ChevronLeft, ChevronRight, X, ZoomIn, Play } from 'lucide-react';
 
 interface ListingDetailPageProps {
   params: Promise<{
@@ -447,7 +447,7 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
 
                 {listing.lotSize && (
                   <div className="text-center">
-                    <Car className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                    <Fence className="w-6 h-6 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600 dark:text-gray-400">Lot Size</p>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">{listing.lotSize.toLocaleString()} sq ft</p>
                   </div>

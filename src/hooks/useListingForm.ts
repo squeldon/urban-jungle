@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { CreateListingData, PropertyListing } from '@/types/listing';
 
-export function useListingForm(editListing?: PropertyListing) {
+export function useListingForm(editListing?: PropertyListing, savedData?: any) {
   const { user } = useAuthContext() as { user: any };
   
   const getInitialFormData = (): CreateListingData => ({
@@ -99,11 +99,29 @@ export function useListingForm(editListing?: PropertyListing) {
     return getInitialFormData();
   };
 
-  const [formData, setFormData] = useState<CreateListingData>(getInitialFormData());
+  const getInitialData = (): CreateListingData => {
+    // If we have saved data and no edit listing, use saved data
+    if (savedData && !editListing) {
+      return {
+        ...getInitialFormData(),
+        ...savedData,
+        // Ensure nested objects are properly handled
+        address: { ...getInitialFormData().address, ...savedData.address },
+        contactInfo: { ...getInitialFormData().contactInfo, ...savedData.contactInfo },
+        dealTerms: { ...getInitialFormData().dealTerms, ...savedData.dealTerms },
+      };
+    }
+    return initializeFormData(editListing);
+  };
+
+  const [formData, setFormData] = useState<CreateListingData>(getInitialData());
 
   useEffect(() => {
-    setFormData(initializeFormData(editListing));
-  }, [editListing, user]);
+    // Only reset if we don't have saved data or if it's an edit
+    if (!savedData || editListing) {
+      setFormData(initializeFormData(editListing));
+    }
+  }, [editListing, user, savedData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

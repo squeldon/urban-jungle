@@ -9,6 +9,7 @@ import Header from '@/components/header/Header';
 import FilterPopup from '@/components/filters/FilterPopup';
 import AuthPopup from '@/components/auth/AuthPopup';
 import MainPanel from '@/components/MainPanel';
+import { SearchAreaResult, MapOverlay } from '@/types/map';
 
 export default function Home() {
   const [showAuthPopup, setShowAuthPopup] = useState(false);
@@ -17,6 +18,7 @@ export default function Home() {
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [squareSize, setSquareSize] = useState(265); // Default medium square size
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapOverlays, setMapOverlays] = useState<MapOverlay[]>([]);
   
   const { user } = useAuthContext() as { user: any };
   const router = useRouter();
@@ -80,6 +82,27 @@ export default function Home() {
     }
   };
 
+  const handleAreaSelect = (area: SearchAreaResult) => {
+    // Set map center to the area center
+    setMapCenter(area.center);
+    
+    // Add area overlay to the map
+    if (area.overlay) {
+      setMapOverlays([area.overlay]);
+    }
+    
+    // Auto-open map panel when area is selected
+    if (!showMapPanel) {
+      setShowMapPanel(true);
+    }
+  };
+
+  const handleOverlayClick = (overlay: MapOverlay) => {
+    // Optional: Handle clicks on map overlays (e.g., show details)
+    console.log('Overlay clicked:', overlay.name);
+  };
+
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header
@@ -99,6 +122,7 @@ export default function Home() {
         onLogout={handleLogout}
         onSquareSizeChange={setSquareSize}
         onLocationSelect={handleLocationSelect}
+        onAreaSelect={handleAreaSelect}
       />
 
       <AuthPopup 
@@ -124,6 +148,8 @@ export default function Home() {
           squareSize={squareSize}
           filters={getListingFilters()}
           mapCenter={mapCenter}
+          mapOverlays={mapOverlays}
+          onOverlayClick={handleOverlayClick}
         />
       </main>
     </div>

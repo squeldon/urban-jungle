@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react';
 import { ActiveFilter, FilterState } from '@/hooks/useFilters';
+import { SearchAreaResult } from '@/types/map';
 import GridSizeControls from './GridSizeControls';
 import SearchBar from './SearchBar';
 import UserMenu from './UserMenu';
@@ -24,6 +25,7 @@ interface HeaderProps {
   onLogout: () => void;
   onSquareSizeChange: (size: number) => void;
   onLocationSelect: (lat: number, lng: number, name: string) => void;
+  onAreaSelect?: (area: SearchAreaResult) => void;
 }
 
 export default function Header({
@@ -43,6 +45,7 @@ export default function Header({
   onLogout,
   onSquareSizeChange,
   onLocationSelect,
+  onAreaSelect,
 }: HeaderProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [tempFilters, setTempFilters] = useState<Partial<FilterState>>({});
@@ -135,7 +138,7 @@ export default function Header({
         {/* Centered Search Bar */}
         <div className="flex justify-center flex-[2]">
           <div className="flex items-center gap-2 w-full">
-            <SearchBar onLocationSelect={onLocationSelect} />
+            <SearchBar onLocationSelect={onLocationSelect} onAreaSelect={onAreaSelect} />
             
             {/* Filter Toggle Button */}
             <button

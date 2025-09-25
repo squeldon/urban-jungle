@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import ListingsPanel from './listings/ListingsPanel';
 import MapPanel from './MapPanel';
 import { ListingFilters } from '@/types/listing';
+import { MapOverlay } from '@/types/map';
 
 interface MainPanelProps {
   showMapPanel: boolean;
@@ -10,9 +11,11 @@ interface MainPanelProps {
   squareSize: number;
   filters?: ListingFilters;
   mapCenter?: [number, number] | null;
+  mapOverlays?: MapOverlay[];
+  onOverlayClick?: (overlay: MapOverlay) => void;
 }
 
-export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, mapCenter }: MainPanelProps) {
+export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, mapCenter, mapOverlays, onOverlayClick }: MainPanelProps) {
   const [headerHeight, setHeaderHeight] = useState(80); // Default fallback
 
   // Dynamically measure header height
@@ -55,6 +58,8 @@ export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize
         hasActiveFilters={activeFiltersCount > 0}
         headerHeight={headerHeight}
         mapCenter={mapCenter}
+        overlays={mapOverlays}
+        onOverlayClick={onOverlayClick}
       />
     </div>
   );

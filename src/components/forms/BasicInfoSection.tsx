@@ -10,8 +10,6 @@ interface BasicInfoSectionProps {
 export function BasicInfoSection({ formData, onChange }: BasicInfoSectionProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-white">Basic Information</h3>
-      
       <FormField label="Property Title" required>
         <input
           type="text"
@@ -132,7 +130,7 @@ export function BasicInfoSection({ formData, onChange }: BasicInfoSectionProps) 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField label="" required>
+        <FormField label="Status" required>
           <select
             name="status"
             value={formData.status}

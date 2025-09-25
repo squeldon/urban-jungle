@@ -10,8 +10,6 @@ interface AddressSectionProps {
 export function AddressSection({ formData, onChange }: AddressSectionProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-white">Address</h3>
-      
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <FormField label="House Number">
           <input

@@ -181,13 +181,10 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Photos and Videos</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Upload high-quality media of your property. The first image will be used as the cover photo.
-          </p>
-        </div>
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Upload high-quality media of your property. The first image will be used as the cover photo.
+        </p>
       </div>
 
       {/* Storage Quota Display */}

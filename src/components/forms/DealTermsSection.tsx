@@ -20,8 +20,6 @@ export function DealTermsSection({ formData, onChange, onToggleFinancingOption }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-white">Deal Terms</h3>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="Earnest Money Deposit ($)">
           <input

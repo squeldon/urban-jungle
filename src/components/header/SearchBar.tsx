@@ -220,12 +220,7 @@ export default function SearchBar({ onLocationSelect }: SearchBarProps) {
         <div 
           ref={dropdownRef}
           className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-60 overflow-y-auto"
-        >
-          {/* Header */}
-          <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
-            Select location
-          </div>
-          
+        > 
           {/* Results */}
           {searchResults.map((result, index) => (
             <button
@@ -262,7 +257,7 @@ export default function SearchBar({ onLocationSelect }: SearchBarProps) {
       )}
       
       {/* No Results Message */}
-      {showSearchResults && searchResults.length === 0 && searchQuery.length >= 3 && !isSearching && (
+      {showSearchResults && searchResults.length === 0 && searchQuery.length >= 3 && !isSearching && searchQuery === lastSearchQuery && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
           <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
             No locations found

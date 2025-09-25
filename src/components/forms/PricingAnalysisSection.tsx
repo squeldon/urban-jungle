@@ -10,8 +10,6 @@ interface PricingAnalysisSectionProps {
 export function PricingAnalysisSection({ formData, onChange }: PricingAnalysisSectionProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-white">Pricing & Investment Analysis</h3>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <FormField label="Asking Price ($)" required>
           <input

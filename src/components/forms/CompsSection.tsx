@@ -41,7 +41,9 @@ export function CompsSection({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Comparable Sales (Optional)</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Add comparable sales to support your pricing analysis. Include recent sales of similar properties in the area.
+        </p>
         <button
           type="button"
           onClick={onAddComp}
@@ -51,10 +53,6 @@ export function CompsSection({
           Add Comp
         </button>
       </div>
-      
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Add comparable sales to support your pricing analysis. Include recent sales of similar properties in the area.
-      </p>
 
       {comps.length === 0 ? (
         <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">

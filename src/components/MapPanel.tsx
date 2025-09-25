@@ -1,24 +1,57 @@
 'use client'
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import 'leaflet/dist/leaflet.css';
+
+// Dynamically import map components to avoid SSR issues
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const ScaleControl = dynamic(() => import('react-leaflet').then(mod => mod.ScaleControl), { ssr: false });
 
 interface MapPanelProps {
   isOpen: boolean;
   hasActiveFilters?: boolean;
   headerHeight: number;
+  mapCenter?: [number, number] | null;
 }
 
-export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight }: MapPanelProps) {
+export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight, mapCenter }: MapPanelProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentCenter, setCurrentCenter] = useState<[number, number]>([40.7128, -74.0060]); // Default to NYC
+  const mapRef = useRef<any>(null);
 
   const handleFullscreenToggle = () => {
     setIsFullscreen(!isFullscreen);
+    
+    // Give the map a moment to adjust to the new size
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 300);
   };
+
+  // Update map center when prop changes
+  useEffect(() => {
+    if (mapCenter && mapRef.current) {
+      setCurrentCenter(mapCenter);
+      mapRef.current.setView(mapCenter, 13);
+    }
+  }, [mapCenter]);
 
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Map Panel */}
+      {/* Overlay for fullscreen mode */}
+      {isFullscreen && (
+        <div
+          className="fixed inset-0 bg-black/20 z-30"
+          onClick={handleFullscreenToggle}
+        />
+      )}
+
+      {/* Single Map Container - Always fullscreen sized but viewport is cropped */}
       <div
         className={`
           fixed z-40 transition-all duration-300 ease-in-out
@@ -28,30 +61,38 @@ export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeigh
           }
         `}
         style={{
-          top: `${headerHeight + 16}px`, // 16px for spacing from header
+          top: `${headerHeight + 16}px`,
           height: `calc(100vh - ${headerHeight + 16}px - 1.5rem)`,
         }}
       >
         <div className="relative w-full h-full bg-gray-100 dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-          {/* Map Container */}
-          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
-            {/* Placeholder for map - will show actual map later */}
-            <div className="text-center text-gray-500 dark:text-gray-400">
-              <svg
-                className="w-16 h-16 mx-auto mb-4 opacity-50"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          {/* Map Container - Always renders at full viewport size */}
+          <div className="w-full h-full">
+            <MapContainer
+              center={currentCenter}
+              zoom={13}
+              ref={mapRef}
+              className="w-full h-full z-0"
+              zoomControl={false}
+              attributionControl={false}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              <ScaleControl position="bottomright" />
+            </MapContainer>
+            
+            {/* Custom Attribution */}
+            <div className="absolute bottom-1 left-2 text-[0.6rem] text-gray-400 z-10">
+              © <a 
+                href="https://www.openstreetmap.org/copyright" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:underline"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-                />
-              </svg>
-              <p className="text-sm font-medium">Map Panel</p>
-              <p className="text-xs mt-1 opacity-75">Map will be implemented here</p>
+                OpenStreetMap
+              </a> contributors
             </div>
           </div>
 
@@ -86,17 +127,8 @@ export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeigh
               )}
             </svg>
           </button>
-
         </div>
       </div>
-
-      {/* Overlay for fullscreen mode */}
-      {isFullscreen && (
-        <div
-          className="fixed inset-0 bg-black/20 z-30"
-          onClick={handleFullscreenToggle}
-        />
-      )}
     </>
   );
 }

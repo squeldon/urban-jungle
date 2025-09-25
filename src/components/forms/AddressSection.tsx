@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { CreateListingData } from '@/types/listing';
 import { FormField } from '@/components/ui/FormField';
-import { LocationSearchInput } from '@/components/ui/LocationSearchInput';
+import { LocationSearchInput, BaseMap } from '@/components/ui';
+import { MapOverlay, SearchAreaResult } from '@/types/map';
+import { createOverlayFromSearchResult, createPointOverlay } from '@/lib/geographic';
 
 interface AddressSectionProps {
   formData: CreateListingData;
@@ -23,6 +25,10 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
   // State to track if a location was selected from dropdown (making it non-editable)
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const [searchValue, setSearchValue] = useState('');
+  
+  // Map state
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapOverlays, setMapOverlays] = useState<MapOverlay[]>([]);
 
   // Check if we have a selected location or manual input
   const hasSelectedLocation = selectedLocation !== null;
@@ -50,6 +56,10 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
       setSelectedLocation(null);
     }
 
+    // Clear any existing map overlays when starting a new search
+    setMapOverlays([]);
+    setMapCenter(null);
+
     // When user starts typing after a selection, clear other address fields
     // and treat this as a new search
     const addressUpdates = [
@@ -71,8 +81,85 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
     });
   };
 
-  // Handle location selection from dropdown
+  // Handle area selection from search (priority over simple location)
+  const handleAreaSelect = (area: SearchAreaResult) => {
+    // Create overlay from the search result using geographic utilities
+    const overlay = createOverlayFromSearchResult(area);
+    if (overlay) {
+      setMapOverlays([overlay]);
+      setMapCenter(area.center);
+      
+      // Parse the display name to extract address components for the area
+      const parts = area.displayName?.split(', ') || [];
+      
+      let streetName = '';
+      let city = '';
+      let state = '';
+      let zipCode = '';
+      
+      if (parts.length >= 2) {
+        streetName = parts[0] || '';
+        city = parts[1] || '';
+        
+        // Try to extract state and zip from the last parts
+        if (parts.length >= 3) {
+          const stateZipPart = parts[2];
+          const stateZipMatch = stateZipPart.match(/^([A-Z]{2})\s*(\d{5}(-\d{4})?)?/);
+          if (stateZipMatch) {
+            state = stateZipMatch[1] || '';
+            zipCode = stateZipMatch[2] || '';
+          } else {
+            // If no ZIP found, assume the whole part is the state
+            state = stateZipPart;
+          }
+        }
+      }
+
+      // Store the selected location
+      const selected: SelectedLocation = {
+        fullAddress: area.displayName || area.name,
+        streetName,
+        city,
+        state,
+        zipCode,
+        lat: area.center[0],
+        lng: area.center[1]
+      };
+      setSelectedLocation(selected);
+      setSearchValue('');
+
+      // Update all address fields with the parsed data
+      const addressUpdates = [
+        { name: 'address.streetName', value: streetName },
+        { name: 'address.city', value: city },
+        { name: 'address.state', value: state },
+        { name: 'address.zipCode', value: zipCode }
+      ];
+
+      addressUpdates.forEach(update => {
+        const syntheticEvent = {
+          target: {
+            name: update.name,
+            value: update.value,
+            type: 'text'
+          }
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+      });
+
+      // Call the parent's location select handler if provided
+      onLocationSelect?.(area.center[0], area.center[1], { lat: area.center[0], lng: area.center[1] });
+      
+      return; // Exit early to prevent simple location handling
+    }
+  };
+
+  // Handle simple location selection from dropdown (fallback when no area overlay available)
   const handleLocationSelect = (lat: number, lng: number, name: string) => {
+    // Skip if we already have overlays (area was processed)
+    if (mapOverlays.length > 0) {
+      return;
+    }
     // Parse the location name to extract address components
     // OpenStreetMap typically returns addresses in format: "Street, City, State ZIP, Country"
     const parts = name.split(', ');
@@ -132,11 +219,16 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
       onChange(syntheticEvent);
     });
 
+    // Update map center and create a point overlay using geographic utilities
+    setMapCenter([lat, lng]);
+    const pointOverlay = createPointOverlay(lat, lng, name, { radius: 50 });
+    setMapOverlays([pointOverlay]);
+
     // Call the parent's location select handler if provided
     onLocationSelect?.(lat, lng, { lat, lng });
   };
 
-  // Handle clearing the selected location
+  // Handle clearing the selected location/area
   const handleClearLocation = () => {
     setSelectedLocation(null);
     setSearchValue('');
@@ -159,6 +251,10 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
       } as React.ChangeEvent<HTMLInputElement>;
       onChange(syntheticEvent);
     });
+
+    // Clear map center and all overlays (both area and point overlays)
+    setMapCenter(null);
+    setMapOverlays([]);
 
     // Clear coordinates
     onLocationSelect?.(0, 0, { lat: 0, lng: 0 });
@@ -238,6 +334,7 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
                 value={searchValue || getLocationString()}
                 onChange={handleLocationChange}
                 onLocationSelect={handleLocationSelect}
+                onAreaSelect={handleAreaSelect}
                 placeholder="Enter street, city, state (e.g., Main Street, Baltimore, MD)"
                 required
                 showSearchButton={true}
@@ -246,6 +343,24 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
           </FormField>
         </div>
       </div>
+      
+      {/* Map Section - Takes up about 1/3 of viewport */}
+      {(mapCenter || mapOverlays.length > 0) && (
+        <div className="mt-6">
+          <div className="h-[33vh] min-h-[300px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+            <BaseMap
+              center={mapCenter || [40.7128, -74.0060]}
+              zoom={mapCenter ? 15 : 13}
+              overlays={mapOverlays}
+              className="w-full h-full"
+              showScale={false}
+              showAttribution={true}
+              showDisclaimer={true}
+              zoomControl={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

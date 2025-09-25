@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { CreateListingData, PropertyListing } from '@/types/listing';
 
@@ -7,7 +7,7 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
   const initializedRef = useRef(false);
   const lastListingIdRef = useRef<string | undefined>(undefined);
   
-  const getInitialFormData = (): CreateListingData => ({
+  const getInitialFormData = useCallback((): CreateListingData => ({
     title: '',
     description: '',
     price: undefined,
@@ -43,9 +43,9 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
     status: 'active',
     isVerified: false,
     createdBy: '',
-  });
+  }), [user]);
 
-  const initializeFormData = (listing?: PropertyListing): CreateListingData => {
+  const initializeFormData = useCallback((listing?: PropertyListing): CreateListingData => {
     if (listing) {
       return {
         title: listing.title || '',
@@ -99,7 +99,7 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
       };
     }
     return getInitialFormData();
-  };
+  }, [getInitialFormData]);
 
   // Memoize the initial form data to prevent recreation on every render
   const initialFormData = useMemo(() => {
@@ -115,7 +115,7 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
       };
     }
     return initializeFormData(editListing);
-  }, [editListing?.id, user?.uid]); // Only depend on stable IDs, not entire objects
+  }, [editListing, getInitialFormData, initializeFormData, savedData]);
 
   const [formData, setFormData] = useState<CreateListingData>(initialFormData);
 
@@ -138,7 +138,7 @@ export function useListingForm(editListing?: PropertyListing, savedData?: any) {
       }
       initializedRef.current = true;
     }
-  }, [editListing?.id, initialFormData]);
+  }, [editListing, initializeFormData, initialFormData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

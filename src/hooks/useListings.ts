@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PropertyListing, ListingFilters } from '@/types/listing';
 import { 
   getListings, 
@@ -27,7 +27,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | undefined>();
+  const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | undefined>(undefined);
   
   const { user } = useAuthContext() as { user: any };
 
@@ -41,7 +41,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
       const result = await getListings(
         filters, 
         pageSize, 
-        isLoadMore ? lastDoc : undefined
+        isLoadMore ? lastDocRef.current : undefined
       );
       
       if (isLoadMore) {
@@ -50,7 +50,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
         setListings(result.listings);
       }
       
-      setLastDoc(result.lastDoc);
+      lastDocRef.current = result.lastDoc;
       setHasMore(result.listings.length === pageSize);
       
     } catch (err) {
@@ -58,7 +58,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
     } finally {
       setLoading(false);
     }
-  }, [filters, pageSize, lastDoc]);
+  }, [filters, pageSize]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) return;
@@ -66,7 +66,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
   }, [hasMore, loading, loadListings]);
 
   const refresh = useCallback(async () => {
-    setLastDoc(undefined);
+    lastDocRef.current = undefined;
     setHasMore(true);
     await loadListings(false);
   }, [loadListings]);
@@ -110,8 +110,10 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
 
   // Load initial data
   useEffect(() => {
+    lastDocRef.current = undefined; // Reset pagination when filters change
+    setHasMore(true);
     loadListings(false);
-  }, [filters]); // Reload when filters change
+  }, [filters, loadListings]); // Reload when filters change
 
   return {
     listings,

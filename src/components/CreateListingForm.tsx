@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { createListing, updateListing } from '@/lib/firestore/listings';
 import { CreateListingData, PropertyListing, UpdateListingData, PropertyDraft, CreateDraftData } from '@/types/listing';
@@ -173,7 +173,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
   const isEditingMode = isEditMode || isDraftEditMode;
 
   // Navigation sections
-  const sections = [
+  const sections = useMemo(() => [
     { id: 'basic-info', label: 'Basic Info', ref: basicInfoRef },
     { id: 'address', label: 'Address', ref: addressRef },
     { id: 'images', label: 'Photos & Videos', ref: imagesRef },
@@ -182,7 +182,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     { id: 'deal-terms', label: 'Deal Terms', ref: dealTermsRef },
     { id: 'features', label: 'Features', ref: featuresRef },
     { id: 'contact', label: 'Contact Info', ref: contactRef },
-  ];
+  ], []);
 
   const scrollToSection = (sectionId: string) => {
     const section = sections.find(s => s.id === sectionId);
@@ -235,13 +235,25 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     };
   }, [sections]);
 
+  // Helper function to clean objects by removing undefined values
+  const cleanObject = useCallback((obj: any): any => {
+    const cleaned = { ...obj };
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === undefined) {
+        delete cleaned[key];
+      } else if (cleaned[key] && typeof cleaned[key] === 'object' && !Array.isArray(cleaned[key])) {
+        cleaned[key] = cleanObject(cleaned[key]);
+      }
+    });
+    return cleaned;
+  }, []);
 
   // Helper function to check if form has content
-  const hasFormContent = () => {
+  const hasFormContent = useCallback(() => {
     return formData.title || formData.description || formData.price ||
            (formData.address && (formData.address.city || formData.address.state || formData.address.streetName)) ||
            formData.features.length > 0 || formData.images.length > 0;
-  };
+  }, [formData]);
 
   // Save form data when it changes and form is open (only for new listings, not editing)
   useEffect(() => {
@@ -250,7 +262,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
         saveFormToStorage(cleanObject(formData));
       }
     }
-  }, [formData, isOpen, isEditingMode]);
+  }, [formData, isOpen, isEditingMode, hasFormContent, cleanObject]);
 
   // Handle saving as draft
   const handleSaveAsDraft = async () => {
@@ -430,17 +442,6 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     setShowExitConfirmation(false);
   };
 
-  const cleanObject = (obj: any): any => {
-    const cleaned = { ...obj };
-    Object.keys(cleaned).forEach(key => {
-      if (cleaned[key] === undefined) {
-        delete cleaned[key];
-      } else if (cleaned[key] && typeof cleaned[key] === 'object' && !Array.isArray(cleaned[key])) {
-        cleaned[key] = cleanObject(cleaned[key]);
-      }
-    });
-    return cleaned;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

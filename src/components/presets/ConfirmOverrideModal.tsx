@@ -34,7 +34,7 @@ export default function ConfirmOverrideModal({
 
         <div className="mb-6">
           <p className="text-gray-700 dark:text-gray-300">
-            You have unsaved changes in the form. Loading the preset "{presetName}" will replace all current field values.
+            You have unsaved changes in the form. Loading the preset &quot;{presetName}&quot; will replace all current field values.
           </p>
           <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
             Consider saving your current changes as a draft or preset before proceeding.

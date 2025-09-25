@@ -225,13 +225,14 @@ export async function publishDraft(draftId: string, userId: string): Promise<str
       propertyCondition: draft.propertyCondition,
       occupancyStatus: draft.occupancyStatus,
       monthlyRent: draft.monthlyRent,
-      address: draft.address || {
-        streetName: '',
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: 'US',
+      address: {
+        houseNumber: draft.address?.houseNumber || '',
+        streetName: draft.address?.streetName || '',
+        street: draft.address?.street || '',
+        city: draft.address?.city || '',
+        state: draft.address?.state || '',
+        zipCode: draft.address?.zipCode || '',
+        country: draft.address?.country || 'US',
       },
       coordinates: draft.coordinates,
       features: draft.features || [],
@@ -240,14 +241,20 @@ export async function publishDraft(draftId: string, userId: string): Promise<str
       videos: draft.videos,
       media: draft.media,
       virtualTourUrl: draft.virtualTourUrl,
-      contactInfo: draft.contactInfo || {
-        name: '',
-        email: '',
-        isOwner: true,
+      contactInfo: {
+        name: draft.contactInfo?.name || '',
+        phone: draft.contactInfo?.phone,
+        email: draft.contactInfo?.email || '',
+        isOwner: draft.contactInfo?.isOwner ?? true,
+        agencyName: draft.contactInfo?.agencyName,
+        isWholesaler: draft.contactInfo?.isWholesaler,
       },
       dealTerms: draft.dealTerms,
-      comps: draft.comps,
+      comps: draft.comps || [],
       tags: [], // Will be generated in createListing function
+      createdBy: '', // Will be overridden in createListing function
+      status: 'active' as const,
+      isVerified: false
     };
 
     // Create the listing

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
-import ListingsPanel from './ListingsPanel';
+import ListingsPanel from './listings/ListingsPanel';
 import MapPanel from './MapPanel';
 import { ListingFilters } from '@/types/listing';
 
@@ -9,9 +9,10 @@ interface MainPanelProps {
   activeFiltersCount: number;
   squareSize: number;
   filters?: ListingFilters;
+  mapCenter?: [number, number] | null;
 }
 
-export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters }: MainPanelProps) {
+export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, mapCenter }: MainPanelProps) {
   const [headerHeight, setHeaderHeight] = useState(80); // Default fallback
 
   // Dynamically measure header height
@@ -53,6 +54,7 @@ export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize
         isOpen={showMapPanel} 
         hasActiveFilters={activeFiltersCount > 0}
         headerHeight={headerHeight}
+        mapCenter={mapCenter}
       />
     </div>
   );

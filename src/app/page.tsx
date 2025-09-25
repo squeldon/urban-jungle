@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { signOut, getAuth } from 'firebase/auth';
 import firebase_app from '@/firebase/config';
 import { useFilters } from '@/hooks/useFilters';
-import Header from '@/components/Header';
-import FilterPopup from '@/components/FilterPopup';
-import AuthPopup from '@/components/AuthPopup';
+import Header from '@/components/header/Header';
+import FilterPopup from '@/components/filters/FilterPopup';
+import AuthPopup from '@/components/auth/AuthPopup';
 import MainPanel from '@/components/MainPanel';
 
 export default function Home() {
@@ -16,6 +16,7 @@ export default function Home() {
   const [showMapPanel, setShowMapPanel] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [squareSize, setSquareSize] = useState(265); // Default medium square size
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   
   const { user } = useAuthContext() as { user: any };
   const router = useRouter();
@@ -71,6 +72,14 @@ export default function Home() {
     setShowFilterPopup(!showFilterPopup);
   };
 
+  const handleLocationSelect = (lat: number, lng: number, name: string) => {
+    setMapCenter([lat, lng]);
+    // Auto-open map panel when location is selected
+    if (!showMapPanel) {
+      setShowMapPanel(true);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header
@@ -89,6 +98,7 @@ export default function Home() {
         onToggleArrayFilter={toggleArrayFilter}
         onLogout={handleLogout}
         onSquareSizeChange={setSquareSize}
+        onLocationSelect={handleLocationSelect}
       />
 
       <AuthPopup 
@@ -113,6 +123,7 @@ export default function Home() {
           activeFiltersCount={getActiveFilters().length}
           squareSize={squareSize}
           filters={getListingFilters()}
+          mapCenter={mapCenter}
         />
       </main>
     </div>

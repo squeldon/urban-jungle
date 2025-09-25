@@ -245,3 +245,24 @@ export interface CreateDraftData extends Omit<PropertyDraft, 'id' | 'createdAt' 
 export interface UpdateDraftData extends Partial<Omit<PropertyDraft, 'id' | 'createdBy' | 'createdAt'>> {
   // All fields except id, createdBy, and createdAt are optional for updates
 }
+
+// Preset-related interfaces
+export interface ListingPreset {
+  id: string;
+  name: string;
+  description?: string;
+  presetData: Partial<CreateListingData>; // The form field values to save
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// For creating new presets
+export interface CreatePresetData extends Omit<ListingPreset, 'id' | 'createdAt' | 'updatedAt'> {
+  // All fields except auto-generated ones
+}
+
+// For updating presets
+export interface UpdatePresetData extends Partial<Omit<ListingPreset, 'id' | 'createdBy' | 'createdAt'>> {
+  // All fields except id, createdBy, and createdAt are optional for updates
+}

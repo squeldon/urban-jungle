@@ -6,7 +6,10 @@ import { CreateListingData, PropertyListing, UpdateListingData, PropertyDraft, C
 import { X, ChevronRight } from 'lucide-react';
 import { useListingForm } from '@/hooks/useListingForm';
 import { useDrafts } from '@/hooks/useDrafts';
+import { usePresets } from '@/hooks/usePresets';
 import ExitConfirmationModal from './ExitConfirmationModal';
+import { PresetBubbles, SavePresetModal, ConfirmOverrideModal } from './presets';
+import { Info, Save } from 'lucide-react';
 
 // Form section components
 import { BasicInfoSection } from './forms/BasicInfoSection';
@@ -29,11 +32,16 @@ interface CreateListingFormProps {
 export default function CreateListingForm({ isOpen, onClose, onSuccess, editListing, editDraft }: CreateListingFormProps) {
   const { user } = useAuthContext() as { user: any };
   const { createDraft, updateDraft } = useDrafts();
+  const { presets, savePreset, deletePreset, loading: presetsLoading } = usePresets();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentSection, setCurrentSection] = useState('basic-info');
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [showConfirmOverride, setShowConfirmOverride] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<any>(null);
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   // LocalStorage utilities for form persistence
   const FORM_STORAGE_KEY = 'create_listing_draft';
@@ -281,6 +289,116 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     }
   };
 
+  // Handle saving as preset
+  const handleSaveAsPreset = async (name: string, description?: string) => {
+    if (!user) {
+      setError('You must be logged in to save presets');
+      return;
+    }
+
+    setIsSavingPreset(true);
+    setError(null);
+
+    try {
+      const cleanFormData = cleanObject(formData);
+      
+      // Remove fields that shouldn't be saved in presets (user-specific data)
+      const presetData = { ...cleanFormData };
+      delete presetData.createdBy;
+      delete presetData.images; // Don't save images in presets
+      delete presetData.videos; // Don't save videos in presets
+      delete presetData.media; // Don't save media in presets
+      
+      // Create the preset object, only include description if it has a value
+      const presetToSave: any = {
+        name,
+        presetData,
+        createdBy: user.uid,
+      };
+      
+      // Only add description if it's not empty/undefined
+      if (description && description.trim()) {
+        presetToSave.description = description.trim();
+      }
+      
+      await savePreset(presetToSave);
+
+      setShowSavePresetModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save preset');
+    } finally {
+      setIsSavingPreset(false);
+    }
+  };
+
+  // Handle loading a preset
+  const handleLoadPreset = (preset: any) => {
+    setSelectedPreset(preset);
+    
+    // Check if form has content to show confirmation
+    if (hasFormContent()) {
+      setShowConfirmOverride(true);
+    } else {
+      confirmLoadPreset(preset);
+    }
+  };
+
+  // Confirm loading preset (override current form)
+  const confirmLoadPreset = (presetToLoad?: any) => {
+    const preset = presetToLoad || selectedPreset;
+    
+    if (!preset) {
+      console.error('No preset provided');
+      setError('No preset selected. Please try again.');
+      return;
+    }
+
+    // Validate preset structure and get the data
+    let presetData;
+    if (preset.presetData) {
+      presetData = preset.presetData;
+    } else if (preset.data) {
+      // Alternative structure in case data is nested differently
+      presetData = preset.data;
+    } else {
+      console.error('Invalid preset structure:', { preset, keys: Object.keys(preset) });
+      setError('Invalid preset format. This preset may be corrupted.');
+      return;
+    }
+
+    try {
+      // Safely merge preset data with current form structure
+      const presetFormData = {
+        ...formData, // Keep current structure
+        ...presetData, // Override with preset values
+        // Ensure arrays are properly handled with safe fallbacks
+        features: Array.isArray(presetData.features) ? presetData.features : [],
+        amenities: Array.isArray(presetData.amenities) ? presetData.amenities : [],
+        images: [], // Reset images
+        videos: [], // Reset videos
+        media: [], // Reset media
+      };
+      
+      setFormData(presetFormData);
+      setShowConfirmOverride(false);
+      setSelectedPreset(null);
+    } catch (err) {
+      console.error('Error loading preset:', err, { preset, presetData });
+      setError('Failed to load preset. Please try again or contact support.');
+    }
+  };
+
+  // Handle preset deletion
+  const handleDeletePreset = async (presetId: string) => {
+    if (!user) return;
+    
+    try {
+      await deletePreset(presetId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete preset');
+    }
+  };
+
   // Handle form close - show confirmation if there are unsaved changes
   const handleClose = () => {
     // If editing a draft or listing, just close without confirmation
@@ -420,12 +538,39 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {isEditMode ? 'Edit Listing' : isDraftEditMode ? 'Edit Draft' : 'Create Property Listing'}
               </h2>
-              <button
-                onClick={handleClose}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Save as Preset button - show for all authenticated users */}
+                {user && (
+                  <div className="relative flex items-center gap-2">
+                    <button
+                      onClick={() => setShowSavePresetModal(true)}
+                      disabled={loading || isSavingDraft || isSavingPreset || !hasFormContent()}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save as Preset
+                    </button>
+                    
+                    <div className="relative group">
+                      <Info className="w-4 h-4 opacity-60 text-blue-600 dark:text-blue-400" />
+                      
+                      {/* Tooltip */}
+                      <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        <div className="font-medium mb-1">Save inputs as preset</div>
+                        <div>Save your current form inputs (excluding images/videos) as a reusable preset. Perfect for similar properties or recurring listing types.</div>
+                        <div className="absolute bottom-full right-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900 dark:border-b-gray-700"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <button
+                  onClick={handleClose}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -435,6 +580,16 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                   <p className="text-red-800 dark:text-red-200">{error}</p>
                 </div>
+              )}
+
+              {/* Preset Bubbles - show for all authenticated users */}
+              {user && (
+                <PresetBubbles
+                  presets={presets}
+                  onPresetClick={handleLoadPreset}
+                  onDeletePreset={handleDeletePreset}
+                  loading={presetsLoading}
+                />
               )}
 
               <div ref={basicInfoRef} className="scroll-mt-6">
@@ -572,6 +727,25 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
         onDiscardChanges={handleDiscardChanges}
         onSaveAsDraft={handleSaveDraftFromExit}
         isSaving={isSavingDraft}
+      />
+
+      {/* Save Preset Modal */}
+      <SavePresetModal
+        isOpen={showSavePresetModal}
+        onClose={() => setShowSavePresetModal(false)}
+        onSave={handleSaveAsPreset}
+        loading={isSavingPreset}
+      />
+
+      {/* Confirm Override Modal */}
+      <ConfirmOverrideModal
+        isOpen={showConfirmOverride}
+        onClose={() => {
+          setShowConfirmOverride(false);
+          setSelectedPreset(null);
+        }}
+        onConfirm={confirmLoadPreset}
+        presetName={selectedPreset?.name || ''}
       />
     </div>
   );

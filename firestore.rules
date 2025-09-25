@@ -91,6 +91,36 @@ service cloud.firestore {
                        request.auth.uid == resource.data.createdBy;
     }
     
+    // Rules for listing presets
+    match /listingPresets/{presetId} {
+      // Users can only read their own presets
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.createdBy;
+      
+      // Only authenticated users can create presets
+      allow create: if request.auth != null && 
+                       request.auth.uid == request.resource.data.createdBy &&
+                       request.resource.data.keys().hasAll(['name', 'presetData', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.presetData is map &&
+                       // Description is optional, but if present must be a string
+                       (!request.resource.data.keys().hasAny(['description']) || 
+                        request.resource.data.description is string);
+      
+      // Users can update their own presets
+      allow update: if request.auth != null && 
+                       request.auth.uid == resource.data.createdBy &&
+                       // Prevent updating createdBy, createdAt fields
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdAt']) &&
+                       // Ensure updatedAt is present and is a timestamp
+                       request.resource.data.updatedAt is timestamp;
+      
+      // Users can only delete their own presets
+      allow delete: if request.auth != null && 
+                       request.auth.uid == resource.data.createdBy;
+    }
+    
     // Deny all other document access
     match /{document=**} {
       allow read, write: if false;

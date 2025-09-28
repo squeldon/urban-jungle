@@ -23,6 +23,7 @@ import { getFirestore } from 'firebase/firestore';
 import firebase_app from '@/firebase/config';
 import { PropertyListing, CreateListingData, UpdateListingData, ListingFilters } from '@/types/listing';
 import { deleteMultipleImages, isFirebaseStorageUrl } from '@/lib/firebase/storage';
+import * as ngeohash from 'ngeohash';
 
 const db = getFirestore(firebase_app);
 const LISTINGS_COLLECTION = 'listings';
@@ -37,10 +38,16 @@ const convertTimestamps = (data: DocumentData): Omit<PropertyListing, 'id'> => {
   } as Omit<PropertyListing, 'id'>;
 };
 
+// Helper function to compute geohash from coordinates
+const computeGeohash = (lat: number, lng: number, precision: number = 9): string => {
+  return ngeohash.encode(lat, lng, precision);
+};
+
 // Create a new listing
 export async function createListing(listingData: CreateListingData, userId: string): Promise<string> {
   try {
-    const newListing = {
+    // Compute geohash if coordinates are available
+    const newListing: any = {
       ...listingData,
       createdBy: userId,
       createdAt: Timestamp.now(),
@@ -50,6 +57,11 @@ export async function createListing(listingData: CreateListingData, userId: stri
       isVerified: false,
       status: 'active' as const,
     };
+
+    // Only add geohash if coordinates are available
+    if (listingData.coordinates) {
+      newListing.geohash = computeGeohash(listingData.coordinates.lat, listingData.coordinates.lng);
+    }
 
     const docRef = await addDoc(collection(db, LISTINGS_COLLECTION), newListing);
     return docRef.id;
@@ -301,10 +313,16 @@ export async function updateListing(
       }
     }
     
-    const updatedData = {
+    // Prepare update data
+    const updatedData: any = {
       ...updateData,
       updatedAt: Timestamp.now(),
     };
+
+    // Only add geohash if coordinates are being updated
+    if (updateData.coordinates) {
+      updatedData.geohash = computeGeohash(updateData.coordinates.lat, updateData.coordinates.lng);
+    }
     
     await updateDoc(docRef, updatedData);
   } catch (error) {

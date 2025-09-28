@@ -35,6 +35,7 @@ export interface PropertyListing {
     lat: number;
     lng: number;
   };
+  geohash?: string; // Encoded geohash for efficient location-based queries
   
   // Features and amenities
   features: string[]; // e.g., ['garage', 'pool', 'garden', 'fireplace']
@@ -185,6 +186,7 @@ export interface PropertyDraft {
     lat: number;
     lng: number;
   };
+  geohash?: string; // Encoded geohash for efficient location-based queries
   
   // Features and amenities
   features?: string[];

@@ -17,6 +17,7 @@ import firebase_app from '@/firebase/config';
 import { PropertyDraft, CreateDraftData, UpdateDraftData, CreateListingData } from '@/types/listing';
 import { createListing } from './listings';
 import { deleteMultipleImages, isFirebaseStorageUrl } from '@/lib/firebase/storage';
+import * as ngeohash from 'ngeohash';
 
 const db = getFirestore(firebase_app);
 const DRAFTS_COLLECTION = 'drafts';
@@ -31,15 +32,26 @@ const convertTimestamps = (data: DocumentData): Omit<PropertyDraft, 'id'> => {
   } as Omit<PropertyDraft, 'id'>;
 };
 
+// Helper function to compute geohash from coordinates
+const computeGeohash = (lat: number, lng: number, precision: number = 9): string => {
+  return ngeohash.encode(lat, lng, precision);
+};
+
 // Create a new draft
 export async function saveDraft(draftData: CreateDraftData, userId: string): Promise<string> {
   try {
-    const newDraft = {
+    // Prepare new draft
+    const newDraft: any = {
       ...draftData,
       createdBy: userId,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
+
+    // Only add geohash if coordinates are available
+    if (draftData.coordinates) {
+      newDraft.geohash = computeGeohash(draftData.coordinates.lat, draftData.coordinates.lng);
+    }
 
     const docRef = await addDoc(collection(db, DRAFTS_COLLECTION), newDraft);
     return docRef.id;
@@ -88,10 +100,16 @@ export async function updateDraft(
       }
     }
     
-    const updatedData = {
+    // Prepare update data
+    const updatedData: any = {
       ...updateData,
       updatedAt: Timestamp.now(),
     };
+
+    // Only add geohash if coordinates are being updated
+    if (updateData.coordinates) {
+      updatedData.geohash = computeGeohash(updateData.coordinates.lat, updateData.coordinates.lng);
+    }
     
     await updateDoc(docRef, updatedData);
   } catch (error) {

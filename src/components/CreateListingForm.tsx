@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { createListing, updateListing } from '@/lib/firestore/listings';
 import { CreateListingData, PropertyListing, UpdateListingData, PropertyDraft, CreateDraftData } from '@/types/listing';
+import { SearchAreaResult } from '@/types/map';
 import { X, ChevronRight } from 'lucide-react';
 import { useListingForm } from '@/hooks/useListingForm';
 import { useDrafts } from '@/hooks/useDrafts';
@@ -167,6 +168,19 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     resetForm,
     setFormData,
   } = useListingForm(editListing || (editDraft ? convertDraftToListingFormat(editDraft) : undefined), savedFormData);
+
+  // Handle location selection from geocoding to set coordinates
+  const handleLocationSelect = (area: SearchAreaResult | null) => {
+    if (area?.center) {
+      setFormData(prev => ({
+        ...prev,
+        coordinates: {
+          lat: area.center[0],
+          lng: area.center[1],
+        },
+      }));
+    }
+  };
 
   const isEditMode = !!editListing;
   const isDraftEditMode = !!editDraft;
@@ -610,6 +624,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
                 <AddressSection 
                   formData={formData} 
                   onChange={handleInputChange} 
+                  onLocationSelect={handleLocationSelect}
                 />
               </div>
 

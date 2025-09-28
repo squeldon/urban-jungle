@@ -53,6 +53,21 @@ export interface RectangleOverlay {
 
 export type MapOverlay = PolygonOverlay | CircleOverlay | RectangleOverlay;
 
+export interface SearchResultAddress {
+  houseNumber?: string;
+  street?: string;
+  streetName?: string;
+  neighbourhood?: string;
+  city?: string;
+  county?: string;
+  state?: string;
+  stateCode?: string;
+  zipCode?: string;
+  country?: string;
+  countryCode?: string;
+  raw?: Record<string, any>;
+}
+
 export interface SearchAreaResult {
   name: string;
   displayName: string;
@@ -61,6 +76,8 @@ export interface SearchAreaResult {
   polygon?: [number, number][]; // Array of [lat, lng] coordinates for form-fitting boundary
   overlay?: MapOverlay;
   confidence: number; // 0-1, how confident we are about the area
+  address: SearchResultAddress;
+  raw?: any;
 }
 
 export interface MapPanelProps {

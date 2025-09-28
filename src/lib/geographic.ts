@@ -1,6 +1,6 @@
 // Geographic utilities for handling location search and area overlays
 
-import { MapOverlay, SearchAreaResult, GeographicBounds } from '@/types/map';
+import { MapOverlay, SearchAreaResult, GeographicBounds, SearchResultAddress } from '@/types/map';
 
 /**
  * Convert a search result to a map overlay
@@ -128,10 +128,77 @@ export function extractPolygon(osmResult: any): [number, number][] | undefined {
 /**
  * Convert OSM search result to SearchAreaResult
  */
+export function normalizeAddressFromSearchResult(osmResult: any): SearchResultAddress {
+  const address = osmResult?.address || {};
+
+  const pickFirst = (...keys: string[]) => {
+    for (const key of keys) {
+      if (address[key]) {
+        return address[key];
+      }
+    }
+    return undefined;
+  };
+
+  const houseNumber = address.house_number || address.house;
+  const streetName = pickFirst(
+    'road',
+    'footway',
+    'pedestrian',
+    'path',
+    'street',
+    'residential',
+    'highway'
+  );
+  const street = [houseNumber, streetName].filter(Boolean).join(' ').trim() || undefined;
+
+  const neighbourhood = pickFirst(
+    'neighbourhood',
+    'suburb',
+    'quarter',
+    'city_district',
+    'residential'
+  );
+
+  const city = pickFirst(
+    'city',
+    'town',
+    'village',
+    'municipality',
+    'hamlet',
+    'locality'
+  );
+
+  const county = pickFirst('county', 'state_district', 'region');
+  const state = pickFirst('state', 'province', 'region', 'state_district');
+  const stateCode = address.state_code as string | undefined;
+  const zipCode = address.postcode as string | undefined;
+  const country = address.country as string | undefined;
+  const countryCode = typeof address.country_code === 'string'
+    ? address.country_code.toUpperCase()
+    : undefined;
+
+  return {
+    houseNumber: houseNumber || undefined,
+    street,
+    streetName: streetName || undefined,
+    neighbourhood,
+    city: city || county || undefined,
+    county: county || undefined,
+    state: state || undefined,
+    stateCode,
+    zipCode,
+    country,
+    countryCode,
+    raw: address,
+  };
+}
+
 export function convertOSMToSearchAreaResult(osmResult: any, searchQuery: string): SearchAreaResult {
   const confidence = calculateConfidence(osmResult, searchQuery);
   const bounds = extractBounds(osmResult);
   const polygon = extractPolygon(osmResult);
+  const address = normalizeAddressFromSearchResult(osmResult);
   
   const result: SearchAreaResult = {
     name: osmResult.name || searchQuery,
@@ -140,6 +207,8 @@ export function convertOSMToSearchAreaResult(osmResult: any, searchQuery: string
     bounds,
     polygon,
     confidence,
+    address,
+    raw: osmResult,
   };
   
   // Create overlay based on the result

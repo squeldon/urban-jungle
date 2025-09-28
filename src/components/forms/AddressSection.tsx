@@ -3,27 +3,17 @@ import { CreateListingData } from '@/types/listing';
 import { FormField } from '@/components/ui/FormField';
 import { LocationSearchInput, BaseMap } from '@/components/ui';
 import { MapOverlay, SearchAreaResult } from '@/types/map';
-import { createOverlayFromSearchResult, createPointOverlay } from '@/lib/geographic';
+import { createOverlayFromSearchResult, normalizeAddressFromSearchResult } from '@/lib/geographic';
 
 interface AddressSectionProps {
   formData: CreateListingData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  onLocationSelect?: (lat: number, lng: number, coordinates?: { lat: number; lng: number }) => void;
-}
-
-interface SelectedLocation {
-  fullAddress: string;
-  streetName: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  lat: number;
-  lng: number;
+  onLocationSelect?: (area: SearchAreaResult | null) => void;
 }
 
 export function AddressSection({ formData, onChange, onLocationSelect }: AddressSectionProps) {
   // State to track if a location was selected from dropdown (making it non-editable)
-  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [selectedArea, setSelectedArea] = useState<SearchAreaResult | null>(null);
   const [searchValue, setSearchValue] = useState('');
   
   // Map state
@@ -31,19 +21,22 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
   const [mapOverlays, setMapOverlays] = useState<MapOverlay[]>([]);
 
   // Check if we have a selected location or manual input
-  const hasSelectedLocation = selectedLocation !== null;
+  const hasSelectedLocation = selectedArea !== null;
 
   // Create a combined location string for manual search input
   const getLocationString = () => {
     if (hasSelectedLocation) {
-      return selectedLocation.fullAddress;
+      return selectedArea?.displayName || selectedArea?.name || '';
     }
+
+    // Location field should NOT include house number - that's separate
     const parts = [
-      formData.address.streetName,
+      formData.address.streetName || formData.address.street,
       formData.address.city,
       formData.address.state,
-      formData.address.zipCode
+      formData.address.zipCode,
     ].filter(Boolean);
+
     return parts.join(', ');
   };
 
@@ -53,7 +46,7 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
     
     // Clear selected location when user starts typing
     if (hasSelectedLocation) {
-      setSelectedLocation(null);
+      setSelectedArea(null);
     }
 
     // Clear any existing map overlays when starting a new search
@@ -61,12 +54,13 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
     setMapCenter(null);
 
     // When user starts typing after a selection, clear other address fields
-    // and treat this as a new search
+    // and treat this as a new search (but don't touch house number)
     const addressUpdates = [
-      { name: 'address.streetName', value: value },
+      { name: 'address.streetName', value },
+      { name: 'address.street', value },
       { name: 'address.city', value: '' },
       { name: 'address.state', value: '' },
-      { name: 'address.zipCode', value: '' }
+      { name: 'address.zipCode', value: '' },
     ];
 
     addressUpdates.forEach(update => {
@@ -83,162 +77,58 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
 
   // Handle area selection from search (priority over simple location)
   const handleAreaSelect = (area: SearchAreaResult) => {
-    // Create overlay from the search result using geographic utilities
     const overlay = createOverlayFromSearchResult(area);
-    if (overlay) {
-      setMapOverlays([overlay]);
-      setMapCenter(area.center);
-      
-      // Parse the display name to extract address components for the area
-      const parts = area.displayName?.split(', ') || [];
-      
-      let streetName = '';
-      let city = '';
-      let state = '';
-      let zipCode = '';
-      
-      if (parts.length >= 2) {
-        streetName = parts[0] || '';
-        city = parts[1] || '';
-        
-        // Try to extract state and zip from the last parts
-        if (parts.length >= 3) {
-          const stateZipPart = parts[2];
-          const stateZipMatch = stateZipPart.match(/^([A-Z]{2})\s*(\d{5}(-\d{4})?)?/);
-          if (stateZipMatch) {
-            state = stateZipMatch[1] || '';
-            zipCode = stateZipMatch[2] || '';
-          } else {
-            // If no ZIP found, assume the whole part is the state
-            state = stateZipPart;
-          }
-        }
-      }
+    setMapOverlays(overlay ? [overlay] : []);
+    setMapCenter(area.center);
 
-      // Store the selected location
-      const selected: SelectedLocation = {
-        fullAddress: area.displayName || area.name,
-        streetName,
-        city,
-        state,
-        zipCode,
-        lat: area.center[0],
-        lng: area.center[1]
-      };
-      setSelectedLocation(selected);
-      setSearchValue('');
+    const normalizedAddress = normalizeAddressFromSearchResult(area.raw);
+    const houseNumber = normalizedAddress.houseNumber || '';
+    const streetName = normalizedAddress.streetName || normalizedAddress.street || '';
+    const street = normalizedAddress.street || [houseNumber, streetName].filter(Boolean).join(' ');
+    const city = normalizedAddress.city || normalizedAddress.neighbourhood || normalizedAddress.county || '';
+    const state = normalizedAddress.state || normalizedAddress.stateCode || '';
+    const zipCode = normalizedAddress.zipCode || '';
+    const country = normalizedAddress.country || formData.address.country || 'US';
 
-      // Update all address fields with the parsed data
-      const addressUpdates = [
-        { name: 'address.streetName', value: streetName },
-        { name: 'address.city', value: city },
-        { name: 'address.state', value: state },
-        { name: 'address.zipCode', value: zipCode }
-      ];
-
-      addressUpdates.forEach(update => {
-        const syntheticEvent = {
-          target: {
-            name: update.name,
-            value: update.value,
-            type: 'text'
-          }
-        } as React.ChangeEvent<HTMLInputElement>;
-        onChange(syntheticEvent);
-      });
-
-      // Call the parent's location select handler if provided
-      onLocationSelect?.(area.center[0], area.center[1], { lat: area.center[0], lng: area.center[1] });
-      
-      return; // Exit early to prevent simple location handling
-    }
-  };
-
-  // Handle simple location selection from dropdown (fallback when no area overlay available)
-  const handleLocationSelect = (lat: number, lng: number, name: string) => {
-    // Skip if we already have overlays (area was processed)
-    if (mapOverlays.length > 0) {
-      return;
-    }
-    // Parse the location name to extract address components
-    // OpenStreetMap typically returns addresses in format: "Street, City, State ZIP, Country"
-    const parts = name.split(', ');
-    
-    let streetName = '';
-    let city = '';
-    let state = '';
-    let zipCode = '';
-    
-    if (parts.length >= 2) {
-      streetName = parts[0] || '';
-      city = parts[1] || '';
-      
-      // Try to extract state and zip from the last parts
-      if (parts.length >= 3) {
-        const stateZipPart = parts[2];
-        const stateZipMatch = stateZipPart.match(/^([A-Z]{2})\s*(\d{5}(-\d{4})?)?/);
-        if (stateZipMatch) {
-          state = stateZipMatch[1] || '';
-          zipCode = stateZipMatch[2] || '';
-        } else {
-          // If no ZIP found, assume the whole part is the state
-          state = stateZipPart;
-        }
-      }
-    }
-
-    // Store the selected location
-    const selected: SelectedLocation = {
-      fullAddress: name,
-      streetName,
-      city,
-      state,
-      zipCode,
-      lat,
-      lng
-    };
-    setSelectedLocation(selected);
+    setSelectedArea(area);
     setSearchValue('');
 
-    // Update all address fields with the parsed data
     const addressUpdates = [
+      { name: 'address.houseNumber', value: houseNumber },
       { name: 'address.streetName', value: streetName },
+      { name: 'address.street', value: street },
       { name: 'address.city', value: city },
       { name: 'address.state', value: state },
-      { name: 'address.zipCode', value: zipCode }
+      { name: 'address.zipCode', value: zipCode },
+      { name: 'address.country', value: country }
     ];
 
     addressUpdates.forEach(update => {
       const syntheticEvent = {
         target: {
           name: update.name,
-          value: update.value,
+          value: update.value || '',
           type: 'text'
         }
       } as React.ChangeEvent<HTMLInputElement>;
       onChange(syntheticEvent);
     });
 
-    // Update map center and create a point overlay using geographic utilities
-    setMapCenter([lat, lng]);
-    const pointOverlay = createPointOverlay(lat, lng, name, { radius: 50 });
-    setMapOverlays([pointOverlay]);
-
-    // Call the parent's location select handler if provided
-    onLocationSelect?.(lat, lng, { lat, lng });
+    onLocationSelect?.(area);
   };
 
   // Handle clearing the selected location/area
   const handleClearLocation = () => {
-    setSelectedLocation(null);
+    setSelectedArea(null);
     setSearchValue('');
     
-    // Clear all address fields
+    // Clear location-related address fields (but leave house number alone)
     const addressUpdates = [
       { name: 'address.streetName', value: '' },
+      { name: 'address.street', value: '' },
       { name: 'address.city', value: '' },
       { name: 'address.state', value: '' },
-      { name: 'address.zipCode', value: '' }
+      { name: 'address.zipCode', value: '' },
     ];
 
     addressUpdates.forEach(update => {
@@ -257,7 +147,7 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
     setMapOverlays([]);
 
     // Clear coordinates
-    onLocationSelect?.(0, 0, { lat: 0, lng: 0 });
+    onLocationSelect?.(null);
   };
 
   return (
@@ -302,7 +192,7 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
                       />
                     </svg>
                     <span className="font-medium truncate max-w-xs">
-                      {selectedLocation.fullAddress}
+                      {selectedArea?.displayName || selectedArea?.name}
                     </span>
                   </div>
                 </div>
@@ -333,7 +223,6 @@ export function AddressSection({ formData, onChange, onLocationSelect }: Address
               <LocationSearchInput
                 value={searchValue || getLocationString()}
                 onChange={handleLocationChange}
-                onLocationSelect={handleLocationSelect}
                 onAreaSelect={handleAreaSelect}
                 placeholder="Enter street, city, state (e.g., Main Street, Baltimore, MD)"
                 required

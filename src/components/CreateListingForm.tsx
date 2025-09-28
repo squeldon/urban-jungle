@@ -712,7 +712,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
                 >
                   {loading 
                     ? (isEditMode ? 'Updating...' : isDraftEditMode ? 'Publishing...' : 'Creating...') 
-                    : (isEditMode ? 'Update Listing' : isDraftEditMode ? 'Publish Draft' : 'Create Listing')
+                    : (isEditMode ? 'Update Listing' : isDraftEditMode ? 'Publish Draft' : 'List Property')
                   }
                 </button>
               </div>

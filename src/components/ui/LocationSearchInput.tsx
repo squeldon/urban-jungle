@@ -166,11 +166,9 @@ export function LocationSearchInput({
     setShowSearchResults(false);
     setSelectedIndex(-1);
     setLastSearchQuery(''); // Clear since we're closing results
-    
-    // Call the basic location select callback
+
     onLocationSelect?.(result.y, result.x, result.label);
-    
-    // If area select callback is provided, convert OSM result to SearchAreaResult
+
     if (onAreaSelect) {
       const searchAreaResult = convertOSMToSearchAreaResult(result.raw, value);
       onAreaSelect(searchAreaResult);

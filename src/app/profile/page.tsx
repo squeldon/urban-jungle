@@ -30,6 +30,22 @@ function Page() {
     refresh: refreshDrafts 
   } = useDrafts();
 
+  // Log when component mounts and user info
+  useEffect(() => {
+    console.log('[Profile Page] Component mounted');
+    console.log('[Profile Page] User:', user ? { id: user.id, email: user.email } : 'Not logged in');
+  }, []);
+
+  // Log listings state changes
+  useEffect(() => {
+    console.log('[Profile Page] Listings state:', { count: listings.length, loading, error });
+  }, [listings, loading, error]);
+
+  // Log drafts state changes
+  useEffect(() => {
+    console.log('[Profile Page] Drafts state:', { count: drafts.length, loading: draftsLoading, error: draftsError });
+  }, [drafts, draftsLoading, draftsError]);
+
   // Check for saved form data and automatically open form if available
   useEffect(() => {
     if (user && !editingListing) { // Only check for new listing creation, not edits

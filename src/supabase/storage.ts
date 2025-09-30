@@ -1,20 +1,22 @@
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import firebase_app from '@/firebase/config';
-import { canUploadFile, recordFileUpload, recordFileDeletion } from '@/lib/firestore/userQuotas';
+import { supabase } from './client';
+import { canUploadFile, recordFileUpload, recordFileDeletion } from '@/lib/db/userQuotas';
+import { recordMediaUpload, recordMediaDeletion } from '@/lib/db/listingMedia';
 
-const storage = getStorage(firebase_app);
+const STORAGE_BUCKET = 'listings';
 
 /**
- * Upload a media file (image or video) to Firebase Storage
+ * Upload a media file (image or video) to Supabase Storage
  * @param file - The media file to upload
  * @param userId - The user ID for organizing uploads
  * @param listingId - Optional listing ID for organizing media
- * @returns Promise<string> - The download URL of the uploaded file
+ * @param draftId - Optional draft ID for organizing media
+ * @returns Promise<string> - The public URL of the uploaded file
  */
 export async function uploadFile(
   file: File, 
   userId: string, 
-  listingId?: string
+  listingId?: string,
+  draftId?: string
 ): Promise<string> {
   try {
     const isImage = file.type.startsWith('image/');
@@ -47,42 +49,63 @@ export async function uploadFile(
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
-    // Create storage path: listings/{userId}/{listingId?}/{fileName}
-    const storagePath = listingId 
-      ? `listings/${userId}/${listingId}/${fileName}`
-      : `listings/${userId}/temp/${fileName}`;
+    // Create storage path: listings/{userId}/{listingId|draftId|temp}/{fileName}
+    let storagePath: string;
+    if (listingId) {
+      storagePath = `${userId}/${listingId}/${fileName}`;
+    } else if (draftId) {
+      storagePath = `${userId}/${draftId}/${fileName}`;
+    } else {
+      storagePath = `${userId}/temp/${fileName}`;
+    }
     
     console.log(`Uploading ${isVideo ? 'video' : 'image'}: ${fileName} to path: ${storagePath}`);
     
-    // Create a reference to the file location
-    const fileRef = ref(storage, storagePath);
-    
-    // Upload the file
+    // Upload the file to Supabase Storage
     console.log('Starting upload...');
-    const snapshot = await uploadBytes(fileRef, file);
-    console.log('Upload completed, getting download URL...');
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type
+      });
     
-    // Get the download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    console.log('Download URL obtained:', downloadURL);
+    if (error) {
+      console.error('Supabase Storage upload error:', error);
+      throw new Error(error.message);
+    }
+    
+    console.log('Upload completed, getting public URL...');
+    
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(storagePath);
+    
+    console.log('Public URL obtained:', publicUrl);
+    
+    // Record the file metadata in listing_media table
+    await recordMediaUpload({
+      userId,
+      listingId,
+      draftId,
+      storagePath,
+      mimeType: file.type,
+      bytes: file.size
+    });
     
     // Record the successful upload in user's quota
     await recordFileUpload(userId, file.size);
     
-    return downloadURL;
+    return publicUrl;
   } catch (error) {
     console.error(`Error uploading ${file.type.startsWith('video/') ? 'video' : 'image'}:`, error);
     
     // Provide more specific error messages
     if (error instanceof Error) {
-      if (error.message.includes('storage/unauthorized')) {
-        throw new Error('Firebase Storage access denied. Please ensure Storage is enabled and rules are deployed.');
-      }
-      if (error.message.includes('storage/canceled')) {
-        throw new Error('Upload was canceled.');
-      }
-      if (error.message.includes('storage/unknown')) {
-        throw new Error('Firebase Storage is not properly configured. Please enable Storage in Firebase Console.');
+      if (error.message.includes('unauthorized')) {
+        throw new Error('Storage access denied. Please ensure you are logged in and have permission.');
       }
       if (error.message.includes('quota exceeded') || error.message.includes('limit')) {
         throw new Error(error.message); // Pass through quota errors as-is
@@ -90,16 +113,16 @@ export async function uploadFile(
       throw new Error(error.message);
     }
     
-    throw new Error('Failed to upload file. Please check Firebase Storage configuration.');
+    throw new Error('Failed to upload file. Please try again.');
   }
 }
 
 /**
- * Upload an image file to Firebase Storage (backward compatibility)
+ * Upload an image file to Supabase Storage (backward compatibility)
  * @param file - The image file to upload
  * @param userId - The user ID for organizing uploads
  * @param listingId - Optional listing ID for organizing images
- * @returns Promise<string> - The download URL of the uploaded image
+ * @returns Promise<string> - The public URL of the uploaded image
  */
 export async function uploadImage(
   file: File, 
@@ -119,7 +142,7 @@ export async function uploadImage(
  * @param userId - The user ID for organizing uploads
  * @param listingId - Optional listing ID for organizing media
  * @param onProgress - Optional callback for upload progress
- * @returns Promise<string[]> - Array of download URLs
+ * @returns Promise<string[]> - Array of public URLs
  */
 export async function uploadMultipleFiles(
   files: File[],
@@ -158,7 +181,7 @@ export async function uploadMultipleFiles(
  * @param userId - The user ID for organizing uploads
  * @param listingId - Optional listing ID for organizing images
  * @param onProgress - Optional callback for upload progress
- * @returns Promise<string[]> - Array of download URLs
+ * @returns Promise<string[]> - Array of public URLs
  */
 export async function uploadMultipleImages(
   files: File[],
@@ -172,99 +195,78 @@ export async function uploadMultipleImages(
 }
 
 /**
- * Delete a media file from Firebase Storage using its download URL
- * @param fileUrl - The download URL of the file to delete
+ * Delete a media file from Supabase Storage using its public URL
+ * @param fileUrl - The public URL of the file to delete
  * @param userId - Optional user ID for quota tracking
  * @returns Promise<void>
  */
 export async function deleteFile(fileUrl: string, userId?: string): Promise<void> {
   try {
-    // Extract the storage path from the download URL
-    const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/';
-    if (!fileUrl.startsWith(baseUrl)) {
-      throw new Error('Invalid Firebase Storage URL');
-    }
+    // Extract the storage path from the public URL
+    const storagePath = extractStoragePath(fileUrl);
     
-    // Parse the URL to get the storage path
-    const url = new URL(fileUrl);
-    const pathMatch = url.pathname.match(/\/o\/(.+)/);
-    if (!pathMatch) {
+    if (!storagePath) {
       throw new Error('Could not parse storage path from URL');
     }
     
-    const storagePath = decodeURIComponent(pathMatch[1]);
     console.log(`Attempting to delete file at path: ${storagePath}`);
-    const fileRef = ref(storage, storagePath);
     
-    // Get file metadata to determine size for quota tracking
+    // Get file metadata for quota tracking before deletion
     let fileSize = 0;
     if (userId) {
       try {
-        // For quota tracking, we'll estimate file size or store it separately
-        // This is a limitation of Firebase Storage - we can't get size after upload easily
-        // In production, you might want to store file sizes in Firestore
-        fileSize = 0; // We'll implement proper tracking later
+        // Fetch file metadata from listing_media table
+        const mediaRecord = await getMediaRecordByPath(storagePath);
+        if (mediaRecord) {
+          fileSize = mediaRecord.bytes;
+        }
       } catch (error) {
         console.warn('Could not get file size for quota tracking:', error);
       }
     }
     
-    try {
-      await deleteObject(fileRef);
-      console.log(`Successfully deleted file: ${storagePath}`);
-    } catch (deleteError) {
-      // Handle deleteObject specific errors first
-      console.log('Raw delete error:', deleteError);
-      console.log('Delete error type:', typeof deleteError);
-      console.log('Delete error code:', (deleteError as any)?.code);
-      console.log('Delete error message:', (deleteError as any)?.message);
+    // Delete from Supabase Storage
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([storagePath]);
+    
+    if (error) {
+      console.error('Supabase Storage delete error:', error);
       
-      const errorCode = (deleteError as any)?.code;
-      const errorMessage = (deleteError as any)?.message || String(deleteError);
-      
-      // Check for object-not-found in multiple ways
-      if (errorCode === 'storage/object-not-found' || 
-          errorMessage.includes('object-not-found') ||
-          errorMessage.includes('does not exist')) {
+      // If object doesn't exist, treat as already deleted (success)
+      if (error.message.includes('not found') || error.message.includes('does not exist')) {
         console.warn(`File already deleted or doesn't exist: ${storagePath}`);
-        return; // Success - file doesn't exist
+      } else {
+        throw new Error(error.message);
       }
-      
-      // Re-throw other errors to be handled by outer catch
-      throw deleteError;
+    } else {
+      console.log(`Successfully deleted file: ${storagePath}`);
     }
     
-    // Update user's quota if userId provided
+    // Delete from listing_media table
+    await recordMediaDeletion(storagePath);
+    
+    // Update user's quota if userId provided and we have file size
     if (userId && fileSize > 0) {
       await recordFileDeletion(userId, fileSize);
     }
   } catch (error) {
     console.error('Error deleting file:', error);
     
-    // Handle specific Firebase Storage errors
+    // Handle specific errors
     if (error instanceof Error) {
-      // Check for object-not-found error in multiple ways
       const errorMessage = error.message.toLowerCase();
-      const errorCode = (error as any).code;
       
       // If the object doesn't exist, treat it as already deleted (success)
-      if (errorCode === 'storage/object-not-found' || 
-          errorMessage.includes('storage/object-not-found') || 
-          errorMessage.includes('does not exist') ||
-          errorMessage.includes('object-not-found')) {
+      if (errorMessage.includes('not found') || 
+          errorMessage.includes('does not exist')) {
         console.warn(`File already deleted or doesn't exist: ${fileUrl}`);
         return; // Don't throw error for already deleted files
       }
       
       // If unauthorized, provide helpful error
-      if (errorCode === 'storage/unauthorized' || errorMessage.includes('storage/unauthorized')) {
+      if (errorMessage.includes('unauthorized') || errorMessage.includes('permission')) {
         throw new Error('You do not have permission to delete this file');
-      }
-      
-      // For other known Firebase errors, provide specific messages
-      if (errorCode?.startsWith('storage/') || errorMessage.includes('storage/')) {
-        console.warn(`Firebase Storage error (non-critical): ${error.message}`);
-        return; // Treat other storage errors as non-critical for deletion
       }
       
       throw new Error(error.message);
@@ -277,8 +279,8 @@ export async function deleteFile(fileUrl: string, userId?: string): Promise<void
 }
 
 /**
- * Delete an image from Firebase Storage using its download URL (backward compatibility)
- * @param imageUrl - The download URL of the image to delete
+ * Delete an image from Supabase Storage using its public URL (backward compatibility)
+ * @param imageUrl - The public URL of the image to delete
  * @param userId - Optional user ID for quota tracking
  * @returns Promise<void>
  */
@@ -287,8 +289,8 @@ export async function deleteImage(imageUrl: string, userId?: string): Promise<vo
 }
 
 /**
- * Delete multiple media files from Firebase Storage
- * @param fileUrls - Array of download URLs to delete
+ * Delete multiple media files from Supabase Storage
+ * @param fileUrls - Array of public URLs to delete
  * @param userId - Optional user ID for quota tracking
  * @returns Promise<void>
  */
@@ -305,7 +307,7 @@ export async function deleteMultipleFiles(fileUrls: string[], userId?: string): 
       console.log(`Successfully deleted file ${index + 1}/${fileUrls.length}`);
     } catch (error) {
       console.warn(`Failed to delete file ${index + 1}/${fileUrls.length} (${url}):`, error);
-      // Continue with other deletions - individual deleteFile already handles most errors gracefully
+      // Continue with other deletions
     }
   });
   
@@ -314,8 +316,8 @@ export async function deleteMultipleFiles(fileUrls: string[], userId?: string): 
 }
 
 /**
- * Delete multiple images from Firebase Storage (backward compatibility)
- * @param imageUrls - Array of download URLs to delete
+ * Delete multiple images from Supabase Storage (backward compatibility)
+ * @param imageUrls - Array of public URLs to delete
  * @param userId - Optional user ID for quota tracking
  * @returns Promise<void>
  */
@@ -324,42 +326,49 @@ export async function deleteMultipleImages(imageUrls: string[], userId?: string)
 }
 
 /**
- * Get a resized image URL (if using Firebase Extensions or similar)
- * This is a placeholder for future implementation
- * @param originalUrl - The original image URL
- * @param size - The desired size (e.g., 'thumb', 'medium', 'large')
- * @returns string - The resized image URL or original if no resizing available
+ * Get a public URL for a file in storage
+ * @param storagePath - The storage path of the file
+ * @returns string - The public URL
  */
-export function getResizedImageUrl(originalUrl: string, size: 'thumb' | 'medium' | 'large'): string {
-  // For now, return the original URL
-  // In the future, you could implement automatic image resizing using Firebase Extensions
-  return originalUrl;
+export function getPublicUrl(storagePath: string): string {
+  const { data } = supabase.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(storagePath);
+  
+  return data.publicUrl;
 }
 
 /**
- * Validate if a URL is a valid Firebase Storage URL
+ * Validate if a URL is a valid Supabase Storage URL
  * @param url - The URL to validate
  * @returns boolean
  */
-export function isFirebaseStorageUrl(url: string): boolean {
-  return url.startsWith('https://firebasestorage.googleapis.com/v0/b/');
+export function isSupabaseStorageUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.includes('supabase') && urlObj.pathname.includes('/storage/');
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Extract storage path from Firebase Storage URL
- * @param url - The Firebase Storage download URL
+ * Extract storage path from Supabase Storage public URL
+ * @param url - The Supabase Storage public URL
  * @returns string - The storage path
  */
 export function extractStoragePath(url: string): string {
   try {
     const urlObj = new URL(url);
-    const pathMatch = urlObj.pathname.match(/\/o\/(.+)/);
+    // Supabase Storage URLs format: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+    const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
     if (!pathMatch) {
       throw new Error('Could not parse storage path from URL');
     }
     return decodeURIComponent(pathMatch[1]);
   } catch (error) {
-    throw new Error('Invalid Firebase Storage URL');
+    console.error('Error extracting storage path:', error);
+    throw new Error('Invalid Supabase Storage URL');
   }
 }
 
@@ -396,17 +405,55 @@ export function isMediaFile(file: File): boolean {
  * @returns 'image' | 'video' | 'unknown'
  */
 export function getFileTypeFromUrl(url: string): 'image' | 'video' | 'unknown' {
-  const path = extractStoragePath(url).toLowerCase();
+  try {
+    const path = extractStoragePath(url).toLowerCase();
+    
+    // Image extensions
+    if (path.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+      return 'image';
+    }
+    
+    // Video extensions
+    if (path.match(/\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv)$/i)) {
+      return 'video';
+    }
+    
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * Helper function to get media record by storage path
+ * @param storagePath - The storage path
+ * @returns Promise<MediaRecord | null>
+ */
+async function getMediaRecordByPath(storagePath: string): Promise<{ bytes: number } | null> {
+  const { data, error } = await supabase
+    .from('listing_media')
+    .select('bytes')
+    .eq('storage_object_path', storagePath)
+    .single();
   
-  // Image extensions
-  if (path.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
-    return 'image';
+  if (error) {
+    console.warn('Error fetching media record:', error);
+    return null;
   }
   
-  // Video extensions
-  if (path.match(/\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv)$/i)) {
-    return 'video';
-  }
-  
-  return 'unknown';
+  return data;
+}
+
+/**
+ * Get a resized image URL (placeholder for future implementation)
+ * This is a placeholder for future implementation with image transformations
+ * @param originalUrl - The original image URL
+ * @param size - The desired size (e.g., 'thumb', 'medium', 'large')
+ * @returns string - The resized image URL or original if no resizing available
+ */
+export function getResizedImageUrl(originalUrl: string, size: 'thumb' | 'medium' | 'large'): string {
+  // For now, return the original URL
+  // In the future, you could implement automatic image resizing using Supabase Image Transformations
+  // https://supabase.com/docs/guides/storage/image-transformations
+  return originalUrl;
 }

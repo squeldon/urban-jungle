@@ -1,14 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react';
 import { PropertyDraft, CreateDraftData, UpdateDraftData } from '@/types/listing';
-import { 
-  getUserDrafts, 
-  saveDraft, 
-  updateDraft, 
-  deleteDraft, 
-  publishDraft 
-} from '@/lib/firestore/drafts';
 import { useAuthContext } from '@/context/AuthContext';
+import * as draftsDb from '@/lib/db/drafts';
 
 export function useDrafts() {
   const { user } = useAuthContext() as { user: any };
@@ -18,16 +12,28 @@ export function useDrafts() {
 
   // Fetch user drafts
   const fetchDrafts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[useDrafts] No user logged in, skipping fetch');
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
-      const userDrafts = await getUserDrafts(user.uid);
+      console.log('[useDrafts] Starting fetch for user:', user.id);
+      const userDrafts = await draftsDb.getUserDrafts(user.id);
+      console.log('[useDrafts] Successfully loaded', userDrafts.length, 'drafts');
       setDrafts(userDrafts);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load drafts');
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load drafts';
+      console.error('[useDrafts] Error loading drafts:', {
+        error: err,
+        message: errorMessage,
+        userId: user?.id,
+        stack: err?.stack
+      });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -40,7 +46,7 @@ export function useDrafts() {
     }
 
     try {
-      const draftId = await saveDraft(draftData, user.uid);
+      const draftId = await draftsDb.saveDraft(draftData, user.id);
       await fetchDrafts(); // Refresh the list
       return draftId;
     } catch (err) {
@@ -57,7 +63,7 @@ export function useDrafts() {
     }
 
     try {
-      await updateDraft(draftId, updateData, user.uid);
+      await draftsDb.updateDraft(draftId, updateData, user.id);
       await fetchDrafts(); // Refresh the list
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update draft';
@@ -73,7 +79,7 @@ export function useDrafts() {
     }
 
     try {
-      await deleteDraft(draftId, user.uid);
+      await draftsDb.deleteDraft(draftId, user.id);
       await fetchDrafts(); // Refresh the list
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete draft';
@@ -89,7 +95,7 @@ export function useDrafts() {
     }
 
     try {
-      const listingId = await publishDraft(draftId, user.uid);
+      const listingId = await draftsDb.publishDraft(draftId, user.id);
       await fetchDrafts(); // Refresh the list
       return listingId;
     } catch (err) {

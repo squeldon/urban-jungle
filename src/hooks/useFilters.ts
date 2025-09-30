@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ListingFilters } from '@/types/listing';
 
 export interface FilterState {
@@ -240,7 +240,8 @@ export const useFilters = () => {
     setFilters(sanitizeFilters(nextFilters));
   };
 
-  const getListingFilters = (): ListingFilters | undefined => {
+  // Memoize the listing filters to prevent unnecessary re-renders
+  const listingFilters = useMemo((): ListingFilters | undefined => {
     const hasActiveFilters = filters.priceMin || filters.priceMax || filters.arvMin || filters.arvMax ||
       filters.repairCostsMin || filters.repairCostsMax || filters.propertyTypes.length > 0 ||
       filters.bedrooms || filters.bathrooms || filters.squareFeetMin || filters.squareFeetMax ||
@@ -249,11 +250,11 @@ export const useFilters = () => {
 
     if (!hasActiveFilters) return undefined;
 
-    const listingFilters: ListingFilters = {};
+    const result: ListingFilters = {};
 
     // Price range
     if (filters.priceMin || filters.priceMax) {
-      listingFilters.priceRange = {
+      result.priceRange = {
         min: filters.priceMin ? parseInt(filters.priceMin) : 0,
         max: filters.priceMax ? parseInt(filters.priceMax) : Number.MAX_SAFE_INTEGER,
       };
@@ -261,7 +262,7 @@ export const useFilters = () => {
 
     // ARV range
     if (filters.arvMin || filters.arvMax) {
-      listingFilters.arvRange = {
+      result.arvRange = {
         min: filters.arvMin ? parseInt(filters.arvMin) : 0,
         max: filters.arvMax ? parseInt(filters.arvMax) : Number.MAX_SAFE_INTEGER,
       };
@@ -269,7 +270,7 @@ export const useFilters = () => {
 
     // Repair costs range
     if (filters.repairCostsMin || filters.repairCostsMax) {
-      listingFilters.repairCostsRange = {
+      result.repairCostsRange = {
         min: filters.repairCostsMin ? parseInt(filters.repairCostsMin) : 0,
         max: filters.repairCostsMax ? parseInt(filters.repairCostsMax) : Number.MAX_SAFE_INTEGER,
       };
@@ -277,7 +278,7 @@ export const useFilters = () => {
 
     // Square feet range
     if (filters.squareFeetMin || filters.squareFeetMax) {
-      listingFilters.squareFeet = {
+      result.squareFeet = {
         min: filters.squareFeetMin ? parseInt(filters.squareFeetMin) : 0,
         max: filters.squareFeetMax ? parseInt(filters.squareFeetMax) : Number.MAX_SAFE_INTEGER,
       };
@@ -286,7 +287,7 @@ export const useFilters = () => {
     // Bedrooms range
     if (filters.bedrooms) {
       const bedroomNum = parseInt(filters.bedrooms);
-      listingFilters.bedrooms = {
+      result.bedrooms = {
         min: bedroomNum,
         max: Number.MAX_SAFE_INTEGER,
       };
@@ -295,7 +296,7 @@ export const useFilters = () => {
     // Bathrooms range
     if (filters.bathrooms) {
       const bathroomNum = parseFloat(filters.bathrooms);
-      listingFilters.bathrooms = {
+      result.bathrooms = {
         min: bathroomNum,
         max: Number.MAX_SAFE_INTEGER,
       };
@@ -303,27 +304,27 @@ export const useFilters = () => {
 
     // Array filters
     if (filters.propertyTypes.length > 0) {
-      listingFilters.propertyType = filters.propertyTypes;
+      result.propertyType = filters.propertyTypes;
     }
 
     if (filters.listingTypes.length > 0 && filters.listingTypes.length === 1) {
-      listingFilters.listingType = filters.listingTypes[0] as 'wholesale' | 'sale' | 'rent';
+      result.listingType = filters.listingTypes[0] as 'wholesale' | 'sale' | 'rent';
     }
 
     if (filters.propertyConditions.length > 0) {
-      listingFilters.propertyCondition = filters.propertyConditions;
+      result.propertyCondition = filters.propertyConditions;
     }
 
     if (filters.occupancyStatuses.length > 0) {
-      listingFilters.occupancyStatus = filters.occupancyStatuses;
+      result.occupancyStatus = filters.occupancyStatuses;
     }
 
     if (filters.financingOptions.length > 0) {
-      listingFilters.financingOptions = filters.financingOptions;
+      result.financingOptions = filters.financingOptions;
     }
 
-    return listingFilters;
-  };
+    return result;
+  }, [filters]);
 
   return {
     filters,
@@ -332,7 +333,7 @@ export const useFilters = () => {
     clearFilter,
     getActiveFilters,
     resetAllFilters,
-    getListingFilters,
+    listingFilters,
     replaceFilters,
   };
 };

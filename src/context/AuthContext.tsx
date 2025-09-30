@@ -1,10 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import firebase_app from '@/firebase/config';
-
-// Initialize Firebase auth instance
-const auth = getAuth(firebase_app);
+import { supabase } from '@/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 // Create the authentication context
 export const AuthContext = createContext({});
@@ -22,21 +19,22 @@ export function AuthContextProvider({ children }: AuthContextProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Subscribe to the authentication state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is signed in
-        setUser(user);
-      } else {
-        // User is signed out
-        setUser(null);
-      }
-      // Set loading to false once authentication state is determined
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Subscribe to authentication state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 
     // Unsubscribe from the authentication state changes when the component is unmounted
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   // Provide the authentication context to child components

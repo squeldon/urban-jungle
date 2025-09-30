@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react';
-import signIn from '@/firebase/auth/signIn';
-import signUp from '@/firebase/auth/signup';
+import signIn from '@/supabase/auth/signIn';
+import signUp from '@/supabase/auth/signUp';
 import AuthInitial from './AuthInitial';
 import AuthLogin from './AuthLogin';
 import AuthSignup from './AuthSignup';
@@ -16,6 +16,7 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
   const [password, setPassword] = useState('');
   const [step, setStep] = useState<'initial' | 'login' | 'signup'>('initial');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -34,14 +35,15 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
         handleClose();
       } else if (error) {
         // Handle expected authentication failures gracefully
-        const errorCode = (error as any).code;
+        const errorMessage = (error as any).message || '';
         
-        // These are expected user errors, not system errors
-        if (errorCode === 'auth/invalid-credential' || 
-            errorCode === 'auth/user-not-found' || 
-            errorCode === 'auth/wrong-password' ||
-            errorCode === 'auth/invalid-email') {
+        // Supabase error messages
+        if (errorMessage.includes('Invalid login credentials') || 
+            errorMessage.includes('Email not confirmed') ||
+            errorMessage.includes('invalid_grant')) {
           setError('Email or password is incorrect, or account does not exist');
+        } else if (errorMessage.includes('Invalid email')) {
+          setError('Please enter a valid email address');
         } else {
           // Only log unexpected errors
           console.error('Unexpected authentication error:', error);
@@ -61,6 +63,7 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
     if (!email || !password || loading) return;
     
     setError('');
+    setSuccessMessage('');
     setLoading(true);
 
     try {
@@ -68,20 +71,21 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
       
       if (result) {
         console.log('Sign up successful:', result);
-        handleClose();
+        // Supabase may require email confirmation
+        if ((result as any).user && !(result as any).session) {
+          setSuccessMessage('Please check your email to confirm your account.');
+        } else {
+          handleClose();
+        }
       } else if (error) {
-        const errorCode = (error as any).code;
+        const errorMessage = (error as any).message || '';
         
-        // These are expected validation errors, not system errors
-        if (errorCode === 'auth/email-already-in-use') {
-          setError('This email is already registered. Please log in instead.');
-        } else if (errorCode === 'auth/weak-password') {
+        // Supabase error messages
+        if (errorMessage.includes('Password should be at least')) {
           setError('Password should be at least 6 characters.');
-        } else if (errorCode === 'auth/invalid-email') {
+        } else if (errorMessage.includes('Invalid email')) {
           setError('Please enter a valid email address.');
-        } else if (errorCode === 'auth/missing-email') {
-          setError('Please enter an email address.');
-        } else if (errorCode === 'auth/missing-password') {
+        } else if (errorMessage.includes('Signup requires a valid password')) {
           setError('Please enter a password.');
         } else {
           // Only log unexpected errors
@@ -104,6 +108,7 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
     setPassword('');
     setStep('initial');
     setError('');
+    setSuccessMessage('');
     setLoading(false);
   };
 
@@ -114,16 +119,19 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
   const handleSwitchToSignup = () => {
     setStep('signup');
     setError('');
+    setSuccessMessage('');
   };
 
   const handleSwitchToLogin = () => {
     setStep('login');
     setError('');
+    setSuccessMessage('');
   };
 
   const handleBack = () => {
     setStep('initial');
     setError('');
+    setSuccessMessage('');
   };
 
   return (
@@ -158,6 +166,7 @@ export default function AuthPopup({ isOpen, onClose }: AuthPopupProps) {
             email={email}
             password={password}
             error={error}
+            successMessage={successMessage}
             loading={loading}
             onEmailChange={setEmail}
             onPasswordChange={setPassword}

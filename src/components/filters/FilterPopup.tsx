@@ -1,9 +1,13 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react';
 import { FilterState } from '@/hooks/useFilters';
-import { useFilterPresets } from '@/hooks/useFilterPresets';
-import { FilterPreset } from '@/lib/firestore/filterPresets';
 import { useAuthContext } from '@/context/AuthContext';
+import {
+  getFilterPresets,
+  saveFilterPreset,
+  deleteFilterPreset,
+  FilterPreset,
+} from '@/lib/db/filterPresets';
 
 import FilterPresets from './FilterPresets';
 import PriceFilters from './PriceFilters';
@@ -32,21 +36,23 @@ export default function FilterPopup({
   onResetFilters,
   onReplaceFilters,
 }: FilterPopupProps) {
-  const { user } = useAuthContext() as { user: { uid: string } | null };
-  const { presets, isLoadingPresets, errorMessage, savePreset, deletePreset } = useFilterPresets();
+  const { user } = useAuthContext() as { user: any };
+  const [presets, setPresets] = useState<FilterPreset[]>([]);
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
   const [isPresetNameFormOpen, setIsPresetNameFormOpen] = useState(false);
   const [presetNameInput, setPresetNameInput] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Local state for temporary filter changes
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
 
-  // Initialize local filters when popup opens
+  // Initialize local filters ONLY when popup opens (not on every filter change)
   useEffect(() => {
     if (isOpen) {
       setLocalFilters(filters);
     }
-  }, [isOpen, filters]);
+  }, [isOpen]);
 
   // Prevent body scroll when popup is open
   useEffect(() => {
@@ -62,8 +68,43 @@ export default function FilterPopup({
     };
   }, [isOpen]);
 
+  // Preload filter presets when user is authenticated (not waiting for popup to open)
+  useEffect(() => {
+    let isMounted = true;
 
-  const hasAuth = useMemo(() => Boolean(user?.uid), [user]);
+    async function loadPresets() {
+      if (!user) {
+        setPresets([]);
+        return;
+      }
+
+      setIsLoadingPresets(true);
+      setErrorMessage(null);
+      try {
+        const fetchedPresets = await getFilterPresets(user.id);
+        if (isMounted) {
+          setPresets(fetchedPresets);
+        }
+      } catch (error) {
+        console.error('Failed to load filter presets:', error);
+        if (isMounted) {
+          setErrorMessage('Unable to load saved options right now.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPresets(false);
+        }
+      }
+    }
+
+    loadPresets();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const hasAuth = useMemo(() => Boolean(user?.id), [user]);
 
   // Calculate if current filters would exceed Firebase disjunction limit
   const calculateDisjunctionRisk = useMemo(() => {
@@ -119,7 +160,8 @@ export default function FilterPopup({
 
   const handleDeletePreset = async (presetId: string) => {
     try {
-      await deletePreset(presetId);
+      await deleteFilterPreset(user.id, presetId);
+      setPresets((current) => current.filter((preset) => preset.id !== presetId));
     } catch (error) {
       // Error handling is managed by the hook
     }
@@ -138,6 +180,11 @@ export default function FilterPopup({
   const handleSavePreset = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!user?.id) {
+      setErrorMessage('You need an account to save presets.');
+      return;
+    }
+
     const presetName = presetNameInput.trim();
     if (!presetName) {
       return;
@@ -150,7 +197,21 @@ export default function FilterPopup({
         (preset) => preset.name.toLowerCase() === presetName.toLowerCase()
       );
 
-      await savePreset(presetName, localFilters, existingPreset?.id);
+      const presetId = await saveFilterPreset(user.id, presetName, localFilters, existingPreset?.id);
+      const updatedPreset: FilterPreset = {
+        id: presetId,
+        name: presetName,
+        filters: localFilters,
+        createdAt: existingPreset?.createdAt || new Date(),
+        updatedAt: new Date(),
+      };
+
+      setPresets((current) => {
+        if (existingPreset) {
+          return current.map((preset) => (preset.id === existingPreset.id ? updatedPreset : preset));
+        }
+        return [updatedPreset, ...current];
+      });
       setIsPresetNameFormOpen(false);
       setPresetNameInput('');
     } catch (error) {

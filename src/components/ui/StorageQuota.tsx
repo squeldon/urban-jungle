@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
-import { getUserQuota, formatBytes, getStorageUsagePercentage, type UserQuota } from '@/lib/firestore/userQuotas';
+import { getUserQuota, formatBytes, getStorageUsagePercentage, type UserQuota } from '@/lib/db/userQuotas';
 import { Cloud, Upload, Zap } from 'lucide-react';
 
 interface StorageQuotaProps {
@@ -22,7 +22,7 @@ export function StorageQuota({ className = '', showUpgradePrompt = true }: Stora
       }
 
       try {
-        const userQuota = await getUserQuota(user.uid);
+        const userQuota = await getUserQuota(user.id);
         setQuota(userQuota);
       } catch (error) {
         console.error('Error loading user quota:', error);

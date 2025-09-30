@@ -130,11 +130,18 @@ export interface ListingFilters {
     city?: string;
     state?: string;
     zipCode?: string;
-    radius?: number; // for geographic searches
+    radius?: number; // for geographic searches (in miles)
     center?: {
       lat: number;
       lng: number;
     };
+    bounds?: {
+      north: number;
+      south: number;
+      east: number;
+      west: number;
+    };
+    polygon?: [number, number][]; // Array of [lat, lng] coordinates
   };
 }
 
@@ -253,7 +260,7 @@ export interface ListingPreset {
   id: string;
   name: string;
   description?: string;
-  presetData: Partial<CreateListingData>; // The form field values to save
+  data: Partial<CreateListingData>; // The form field values to save
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

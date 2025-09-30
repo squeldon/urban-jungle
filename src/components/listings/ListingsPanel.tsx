@@ -90,7 +90,7 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
       return;
     }
     
-    const isFavorite = listing.favorites.includes(user.uid);
+    const isFavorite = listing.favorites.includes(user.id);
     try {
       await toggleListingFavorite(listing.id, !isFavorite);
     } catch (error) {

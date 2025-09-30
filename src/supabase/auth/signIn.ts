@@ -1,8 +1,4 @@
-import firebase_app from "../config";
-import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
-
-// Get the authentication instance using the Firebase app
-const auth = getAuth(firebase_app);
+import { supabase } from '../client';
 
 // Function to sign in with email and password
 export default async function signIn(email: string, password: string) {
@@ -10,7 +6,16 @@ export default async function signIn(email: string, password: string) {
     error = null; // Variable to store any error that occurs
 
   try {
-    result = await signInWithEmailAndPassword(auth, email, password); // Sign in with email and password
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      error = signInError;
+    } else {
+      result = data;
+    }
   } catch (e) {
     error = e; // Catch and store any error that occurs during sign-in
   }

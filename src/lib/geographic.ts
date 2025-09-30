@@ -246,4 +246,90 @@ export function createPointOverlay(
     }
   };
 }
-    
+
+/**
+ * Convert meters to miles
+ */
+export function metersToMiles(meters: number): number {
+  return meters / 1609.34;
+}
+
+/**
+ * Convert miles to meters
+ */
+export function milesToMeters(miles: number): number {
+  return miles * 1609.34;
+}
+
+/**
+ * Convert meters to kilometers
+ */
+export function metersToKilometers(meters: number): number {
+  return meters / 1000;
+}
+
+/**
+ * Format distance for display
+ * @param meters Distance in meters
+ * @param unit Preferred unit ('mi' or 'km')
+ * @returns Formatted string like "2.5 mi" or "4.0 km"
+ */
+export function formatDistance(meters: number, unit: 'mi' | 'km' = 'mi'): string {
+  if (unit === 'mi') {
+    const miles = metersToMiles(meters);
+    if (miles < 0.1) {
+      return `${Math.round(meters)} m`;
+    }
+    return `${miles.toFixed(1)} mi`;
+  } else {
+    const km = metersToKilometers(meters);
+    if (km < 0.1) {
+      return `${Math.round(meters)} m`;
+    }
+    return `${km.toFixed(1)} km`;
+  }
+}
+
+/**
+ * Calculate approximate bounding box from center point and radius
+ * Useful for initial map bounds before PostGIS query
+ * @param lat Center latitude
+ * @param lng Center longitude
+ * @param radiusMeters Radius in meters
+ * @returns Bounding box { north, south, east, west }
+ */
+export function calculateBoundingBox(
+  lat: number,
+  lng: number,
+  radiusMeters: number
+): GeographicBounds {
+  // Approximate degrees per meter (varies by latitude)
+  const latDegreesPerMeter = 1 / 111320;
+  const lngDegreesPerMeter = 1 / (111320 * Math.cos((lat * Math.PI) / 180));
+  
+  const latOffset = radiusMeters * latDegreesPerMeter;
+  const lngOffset = radiusMeters * lngDegreesPerMeter;
+  
+  return {
+    north: lat + latOffset,
+    south: lat - latOffset,
+    east: lng + lngOffset,
+    west: lng - lngOffset,
+  };
+}
+
+/**
+ * Check if coordinates are valid
+ */
+export function isValidCoordinates(lat: number, lng: number): boolean {
+  return (
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}

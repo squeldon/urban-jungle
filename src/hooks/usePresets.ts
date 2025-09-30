@@ -1,13 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react';
 import { ListingPreset, CreatePresetData, UpdatePresetData } from '@/types/listing';
-import { 
-  getUserPresets, 
-  createPreset, 
-  updatePreset, 
-  deletePreset 
-} from '@/lib/firestore/presets';
 import { useAuthContext } from '@/context/AuthContext';
+import * as presetsDb from '@/lib/db/presets';
 
 export function usePresets() {
   const { user } = useAuthContext() as { user: any };
@@ -17,16 +12,28 @@ export function usePresets() {
 
   // Fetch user presets
   const fetchPresets = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[usePresets] No user logged in, skipping fetch');
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
-      const userPresets = await getUserPresets(user.uid);
+      console.log('[usePresets] Starting fetch for user:', user.id);
+      const userPresets = await presetsDb.getUserPresets(user.id);
+      console.log('[usePresets] Successfully loaded', userPresets.length, 'presets');
       setPresets(userPresets);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load presets');
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load presets';
+      console.error('[usePresets] Error loading presets:', {
+        error: err,
+        message: errorMessage,
+        userId: user?.id,
+        stack: err?.stack
+      });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -39,7 +46,7 @@ export function usePresets() {
     }
 
     try {
-      const presetId = await createPreset(presetData, user.uid);
+      const presetId = await presetsDb.createPreset(presetData, user.id);
       await fetchPresets(); // Refresh the list
       return presetId;
     } catch (err) {
@@ -56,7 +63,7 @@ export function usePresets() {
     }
 
     try {
-      await updatePreset(presetId, updateData, user.uid);
+      await presetsDb.updatePreset(presetId, updateData, user.id);
       await fetchPresets(); // Refresh the list
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update preset';
@@ -72,7 +79,7 @@ export function usePresets() {
     }
 
     try {
-      await deletePreset(presetId, user.uid);
+      await presetsDb.deletePreset(presetId, user.id);
       await fetchPresets(); // Refresh the list
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete preset';

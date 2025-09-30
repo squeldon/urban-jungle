@@ -104,11 +104,17 @@ with check (auth.uid() = user_id);
   - Implement wrappers replacing `@/firebase/auth/signIn` and `signup` using Supabase (`signInWithPassword`, `signUp`) and keep `{ result, error }` shape.
   - Update components relying on auth (`UserMenu`, `AuthPopup`, etc.) to consume the new context; aim to keep their prop-level API stable.
 
-- [ ] Phase 4 — Storage migration
-  - Replace `src/lib/firebase/storage.ts` with `src/lib/storage.ts` using Supabase Storage API.
-  - Implement `uploadMedia`, `deleteMedia`, `getPublicUrl`; scope paths to `listings/{user_id}/{listing_id}/...`.
-  - Integrate with `user_quotas` table for tracking usage and monthly counts.
-  - Update `ImageUploadSection` to use the new module without changing UI behavior.
+- [x] Phase 4 — Storage migration
+  - ✅ Created `src/supabase/storage.ts` with Supabase Storage API
+  - ✅ Implemented `uploadFile`, `deleteFile`, `uploadMultipleFiles`, etc. with same API as Firebase
+  - ✅ Created `src/lib/db/userQuotas.ts` for quota management
+  - ✅ Created `src/lib/db/listingMedia.ts` for media tracking
+  - ✅ Added SQL migration `004_quota_functions.sql` for atomic quota updates
+  - ✅ Paths scoped to `listings/{user_id}/{listing_id|draft_id|temp}/...`
+  - ✅ Integrated with `user_quotas` and `listing_media` tables
+  - 🔄 Update components to import from `@/supabase/storage` instead of `@/lib/firebase/storage`
+  - 🔄 Update components to import from `@/lib/db/userQuotas` instead of `@/lib/firestore/userQuotas`
+  - See `supabase/STORAGE_MIGRATION.md` for detailed guide
 
 - [ ] Phase 5 — Data-access layer migration
   - Create `src/lib/db/` to replace `src/lib/firestore/*` modules:

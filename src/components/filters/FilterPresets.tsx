@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FilterState } from '@/hooks/useFilters';
-import { FilterPreset } from '@/lib/firestore/filterPresets';
+import { FilterPreset } from '@/lib/db/filterPresets';
 
 interface FilterPresetsProps {
   hasAuth: boolean;

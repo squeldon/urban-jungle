@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS public.listing_presets (
   
   name TEXT NOT NULL,
   description TEXT,
-  preset_data JSONB NOT NULL, -- Stores partial listing data
+  data JSONB NOT NULL, -- Stores partial listing data
   
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

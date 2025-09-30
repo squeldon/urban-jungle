@@ -3,8 +3,8 @@ import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing } from '@/types/listing';
-import { getListing, toggleFavorite, incrementViewCount } from '@/lib/firestore/listings';
-import { getFileTypeFromUrl } from '@/lib/firebase/storage';
+import { getListing, toggleFavorite, incrementViewCount } from '@/lib/db/listings';
+import { getFileTypeFromUrl } from '@/supabase/storage';
 import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Fence, Star, ChevronLeft, ChevronRight, X, ZoomIn, Play } from 'lucide-react';
 
 interface ListingDetailPageProps {
@@ -54,14 +54,14 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
   const handleFavoriteClick = async () => {
     if (!user || !listing) return;
     
-    const isFavorite = listing.favorites.includes(user.uid);
+    const isFavorite = listing.favorites.includes(user.id);
     try {
-      await toggleFavorite(listing.id, user.uid, !isFavorite);
+      await toggleFavorite(listing.id, user.id, !isFavorite);
       setListing(prev => prev ? {
         ...prev,
         favorites: isFavorite 
-          ? prev.favorites.filter(id => id !== user.uid)
-          : [...prev.favorites, user.uid]
+          ? prev.favorites.filter(id => id !== user.id)
+          : [...prev.favorites, user.id]
       } : null);
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -175,7 +175,7 @@ export default function ListingDetailPage({ params }: ListingDetailPageProps) {
                 >
                   <Heart 
                     className={`w-4 h-4 ${
-                      listing.favorites.includes(user.uid)
+                      listing.favorites.includes(user.id)
                         ? 'fill-red-500 text-red-500'
                         : 'text-gray-400'
                     }`}

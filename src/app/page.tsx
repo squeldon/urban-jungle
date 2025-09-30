@@ -1,9 +1,10 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import signOut from '@/supabase/auth/signOut';
 import { useFilters } from '@/hooks/useFilters';
+import { ListingFilters } from '@/types/listing';
 import Header from '@/components/header/Header';
 import FilterPopup from '@/components/filters/FilterPopup';
 import AuthPopup from '@/components/auth/AuthPopup';
@@ -18,6 +19,7 @@ export default function Home() {
   const [squareSize, setSquareSize] = useState(265); // Default medium square size
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [mapOverlays, setMapOverlays] = useState<MapOverlay[]>([]);
+  const [locationFilter, setLocationFilter] = useState<ListingFilters['location'] | null>(null);
   
   const { user } = useAuthContext() as { user: any };
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function Home() {
     clearFilter,
     getActiveFilters,
     resetAllFilters,
-    getListingFilters,
+    listingFilters,
     replaceFilters,
   } = useFilters();
 
@@ -89,6 +91,30 @@ export default function Home() {
       setMapOverlays([area.overlay]);
     }
     
+    // Convert SearchAreaResult to location filter using PostGIS
+    // Priority: polygon > bounds (most precise to least precise)
+    const newLocationFilter: ListingFilters['location'] = {};
+    
+    if (area.polygon && area.polygon.length >= 3) {
+      // Use polygon for most precise filtering
+      newLocationFilter.polygon = area.polygon;
+      console.log('Location filter set to polygon with', area.polygon.length, 'points');
+    } else if (area.bounds) {
+      // Use bounding box as fallback
+      newLocationFilter.bounds = area.bounds;
+      console.log('Location filter set to bounds:', area.bounds);
+    } else {
+      // Fallback to radius search around center point (10 miles default)
+      newLocationFilter.center = {
+        lat: area.center[0],
+        lng: area.center[1],
+      };
+      newLocationFilter.radius = 10; // 10 mile radius default
+      console.log('Location filter set to radius:', newLocationFilter.center);
+    }
+    
+    setLocationFilter(newLocationFilter);
+    
     // Auto-open map panel when area is selected
     if (!showMapPanel) {
       setShowMapPanel(true);
@@ -100,6 +126,18 @@ export default function Home() {
     console.log('Overlay clicked:', overlay.name);
   };
 
+  // Combine regular filters with location filter
+  const combinedFilters = useMemo(() => {
+    // If we have a location filter, merge it with base filters
+    if (locationFilter && (locationFilter.polygon || locationFilter.bounds || locationFilter.center)) {
+      return {
+        ...listingFilters,
+        location: locationFilter,
+      };
+    }
+    
+    return listingFilters;
+  }, [listingFilters, locationFilter]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -144,7 +182,7 @@ export default function Home() {
           showMapPanel={showMapPanel}
           activeFiltersCount={getActiveFilters().length}
           squareSize={squareSize}
-          filters={getListingFilters()}
+          filters={combinedFilters}
           mapCenter={mapCenter}
           mapOverlays={mapOverlays}
           onOverlayClick={handleOverlayClick}

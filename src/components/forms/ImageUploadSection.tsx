@@ -2,9 +2,16 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Camera, Image as ImageIcon } from 'lucide-react';
 import { CreateListingData } from '@/types/listing';
-import { uploadMultipleFiles, deleteFile, isFirebaseStorageUrl, isImageFile, isVideoFile, getFileTypeFromUrl } from '@/lib/firebase/storage';
 import { useAuthContext } from '@/context/AuthContext';
 import { StorageQuota } from '@/components/ui/StorageQuota';
+import { 
+  uploadMultipleFiles, 
+  deleteFile, 
+  isImageFile, 
+  isVideoFile, 
+  getFileTypeFromUrl,
+  isSupabaseStorageUrl 
+} from '@/supabase/storage';
 
 interface ImageUploadSectionProps {
   formData: CreateListingData;
@@ -69,9 +76,9 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
       // Upload media files to Firebase Storage
       const uploadedUrls = await uploadMultipleFiles(
         validFiles,
-        user.uid,
+        user.id,
         undefined, // No listing ID yet (this is during creation)
-        (current, total) => {
+        (current: number, total: number) => {
           setUploadProgress({ current, total });
         }
       );
@@ -120,8 +127,8 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
     const newImages = formData.images.filter((_, i) => i !== index);
     onImagesChange(newImages);
     
-    // If it's a Firebase Storage URL, delete it from storage
-    if (isFirebaseStorageUrl(mediaUrl)) {
+    // If it's a storage URL, delete it from storage
+    if (isSupabaseStorageUrl(mediaUrl)) {
       try {
         const fileType = getFileTypeFromUrl(mediaUrl);
         console.log(`Removing ${fileType} from storage: ${mediaUrl}`);

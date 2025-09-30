@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PropertyListing, ListingFilters } from '@/types/listing';
-import { 
-  getListings, 
-  getUserListings, 
-  getFavoriteListings,
-  incrementViewCount,
-  toggleFavorite,
-  deleteListing
-} from '@/lib/firestore/listings';
 import { useAuthContext } from '@/context/AuthContext';
-import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import * as listingsDb from '@/lib/db/listings';
 
 interface UseListingsReturn {
   listings: PropertyListing[];
@@ -27,7 +19,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | undefined>(undefined);
+  const lastDocRef = useRef<any | undefined>(undefined);
   
   const { user } = useAuthContext() as { user: any };
 
@@ -38,7 +30,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
         setError(null);
       }
 
-      const result = await getListings(
+      const result = await listingsDb.getListings(
         filters, 
         pageSize, 
         isLoadMore ? lastDocRef.current : undefined
@@ -75,14 +67,14 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
     if (!user) throw new Error('Must be logged in to favorite listings');
     
     try {
-      await toggleFavorite(listingId, user.uid, isFavorite);
+      await listingsDb.toggleFavorite(listingId, user.id, isFavorite);
       
       // Update local state
       setListings(prev => prev.map(listing => {
         if (listing.id === listingId) {
           const newFavorites = isFavorite 
-            ? [...listing.favorites, user.uid]
-            : listing.favorites.filter(id => id !== user.uid);
+            ? [...listing.favorites, user.id]
+            : listing.favorites.filter(id => id !== user.id);
           return { ...listing, favorites: newFavorites };
         }
         return listing;
@@ -94,7 +86,7 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
 
   const incrementViews = useCallback(async (listingId: string) => {
     try {
-      await incrementViewCount(listingId);
+      await listingsDb.incrementViewCount(listingId);
       
       // Update local state
       setListings(prev => prev.map(listing => 
@@ -137,18 +129,28 @@ export function useUserListings() {
 
   const loadUserListings = useCallback(async () => {
     if (!user) {
+      console.log('[useUserListings] No user logged in, skipping fetch');
       setListings([]);
       setLoading(false);
       return;
     }
 
     try {
+      console.log('[useUserListings] Starting fetch for user:', user.id);
       setLoading(true);
       setError(null);
-      const userListings = await getUserListings(user.uid);
+      const userListings = await listingsDb.getUserListings(user.id);
+      console.log('[useUserListings] Successfully loaded', userListings.length, 'listings');
       setListings(userListings);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load user listings');
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load user listings';
+      console.error('[useUserListings] Error loading listings:', {
+        error: err,
+        message: errorMessage,
+        userId: user?.id,
+        stack: err?.stack
+      });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -162,7 +164,7 @@ export function useUserListings() {
     if (!user) throw new Error('Must be logged in to delete listings');
     
     try {
-      await deleteListing(listingId, user.uid);
+      await listingsDb.deleteListing(listingId, user.id);
       
       // Update local state by removing the deleted listing
       setListings(prev => prev.filter(listing => listing.id !== listingId));
@@ -198,7 +200,7 @@ export function useFavoriteListings() {
     try {
       setLoading(true);
       setError(null);
-      const favoriteListings = await getFavoriteListings(user.uid);
+      const favoriteListings = await listingsDb.getFavoriteListings(user.id);
       setListings(favoriteListings);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load favorite listings');

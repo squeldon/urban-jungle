@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
-import { createListing, updateListing } from '@/lib/firestore/listings';
+import { createListing, updateListing } from '@/lib/db/listings';
 import { CreateListingData, PropertyListing, UpdateListingData, PropertyDraft, CreateDraftData } from '@/types/listing';
 import { X, ChevronRight } from 'lucide-react';
 import { useListingForm } from '@/hooks/useListingForm';
@@ -284,7 +284,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
         // Create new draft
         const draftData: CreateDraftData = {
           ...cleanFormData,
-          createdBy: user.uid,
+          createdBy: user.id,
           draftName: formData.title || 'Untitled Draft',
         };
         await createDraft(draftData);
@@ -324,7 +324,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
       // Create the preset object, only include description if it has a value
       const presetToSave: any = {
         name,
-        presetData,
+        data: presetData,
         createdBy: user.uid,
       };
       
@@ -476,14 +476,14 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
           ...cleanFormData,
           tags,
         };
-        await updateListing(editListing.id, updateData, user.uid);
+        await updateListing(editListing.id, updateData, user.id);
       } else if (isDraftEditMode && editDraft) {
         // Convert draft to listing (publish draft)
         const listingData: CreateListingData = {
           ...cleanFormData,
           tags,
         };
-        await createListing(listingData, user.uid);
+        await createListing(listingData, user.id);
         // Delete the draft after successful publishing
         // Note: This will be handled in the profile page or we could add delete draft functionality here
       } else {
@@ -492,7 +492,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
           ...cleanFormData,
           tags,
         };
-        await createListing(listingData, user.uid);
+        await createListing(listingData, user.id);
       }
       
       onSuccess();
@@ -609,7 +609,13 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
                 </h3>
                 <AddressSection 
                   formData={formData} 
-                  onChange={handleInputChange} 
+                  onChange={handleInputChange}
+                  onLocationSelect={(lat, lng, coordinates) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      coordinates: coordinates || { lat, lng }
+                    }));
+                  }}
                 />
               </div>
 

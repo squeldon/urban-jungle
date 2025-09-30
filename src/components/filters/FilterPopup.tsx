@@ -7,7 +7,7 @@ import {
   saveFilterPreset,
   deleteFilterPreset,
   FilterPreset,
-} from '@/lib/firestore/filterPresets';
+} from '@/lib/db/filterPresets';
 
 import FilterPresets from './FilterPresets';
 import PriceFilters from './PriceFilters';
@@ -36,7 +36,7 @@ export default function FilterPopup({
   onResetFilters,
   onReplaceFilters,
 }: FilterPopupProps) {
-  const { user } = useAuthContext() as { user: { uid: string } | null };
+  const { user } = useAuthContext() as { user: any };
   const [presets, setPresets] = useState<FilterPreset[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
@@ -47,12 +47,12 @@ export default function FilterPopup({
   // Local state for temporary filter changes
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
 
-  // Initialize local filters when popup opens
+  // Initialize local filters ONLY when popup opens (not on every filter change)
   useEffect(() => {
     if (isOpen) {
       setLocalFilters(filters);
     }
-  }, [isOpen, filters]);
+  }, [isOpen]);
 
   // Prevent body scroll when popup is open
   useEffect(() => {
@@ -68,12 +68,12 @@ export default function FilterPopup({
     };
   }, [isOpen]);
 
-  // Load presets when popup opens and user is authenticated
+  // Preload filter presets when user is authenticated (not waiting for popup to open)
   useEffect(() => {
     let isMounted = true;
 
     async function loadPresets() {
-      if (!user || !isOpen) {
+      if (!user) {
         setPresets([]);
         return;
       }
@@ -81,7 +81,7 @@ export default function FilterPopup({
       setIsLoadingPresets(true);
       setErrorMessage(null);
       try {
-        const fetchedPresets = await getFilterPresets(user.uid);
+        const fetchedPresets = await getFilterPresets(user.id);
         if (isMounted) {
           setPresets(fetchedPresets);
         }
@@ -102,9 +102,9 @@ export default function FilterPopup({
     return () => {
       isMounted = false;
     };
-  }, [user, isOpen]);
+  }, [user]);
 
-  const hasAuth = useMemo(() => Boolean(user?.uid), [user]);
+  const hasAuth = useMemo(() => Boolean(user?.id), [user]);
 
   // Calculate if current filters would exceed Firebase disjunction limit
   const calculateDisjunctionRisk = useMemo(() => {
@@ -164,7 +164,7 @@ export default function FilterPopup({
     }
 
     try {
-      await deleteFilterPreset(user.uid, presetId);
+      await deleteFilterPreset(user.id, presetId);
       setPresets((current) => current.filter((preset) => preset.id !== presetId));
     } catch (error) {
       console.error('Failed to delete preset', error);
@@ -186,7 +186,7 @@ export default function FilterPopup({
   const handleSavePreset = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!user?.uid) {
+    if (!user?.id) {
       setErrorMessage('You need an account to save presets.');
       return;
     }
@@ -205,7 +205,7 @@ export default function FilterPopup({
         (preset) => preset.name.toLowerCase() === presetName.toLowerCase()
       );
 
-      const presetId = await saveFilterPreset(user.uid, presetName, localFilters, existingPreset?.id);
+      const presetId = await saveFilterPreset(user.id, presetName, localFilters, existingPreset?.id);
       const updatedPreset: FilterPreset = {
         id: presetId,
         name: presetName,

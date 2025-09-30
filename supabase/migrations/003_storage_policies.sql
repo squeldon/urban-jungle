@@ -5,45 +5,89 @@
 -- =====================================================
 
 -- Policy 1: Public can view all files in the listings bucket
-CREATE POLICY "Public can view listing media"
-  ON storage.objects
-  FOR SELECT
-  TO public
-  USING (bucket_id = 'listings');
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND policyname = 'Public can view listing media'
+    AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Public can view listing media"
+      ON storage.objects
+      FOR SELECT
+      TO public
+      USING (bucket_id = 'listings');
+  END IF;
+END
+$$;
 
 -- Policy 2: Authenticated users can upload files to their own folder
-CREATE POLICY "Users can upload their own media"
-  ON storage.objects
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    bucket_id = 'listings' 
-    AND (storage.foldername(name))[1] = auth.uid()::text
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND policyname = 'Users can upload their own media'
+    AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Users can upload their own media"
+      ON storage.objects
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        bucket_id = 'listings' 
+        AND (storage.foldername(name))[1] = auth.uid()::text
+      );
+  END IF;
+END
+$$;
 
 -- Policy 3: Authenticated users can update their own files
-CREATE POLICY "Users can update their own media"
-  ON storage.objects
-  FOR UPDATE
-  TO authenticated
-  USING (
-    bucket_id = 'listings' 
-    AND (storage.foldername(name))[1] = auth.uid()::text
-  )
-  WITH CHECK (
-    bucket_id = 'listings' 
-    AND (storage.foldername(name))[1] = auth.uid()::text
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND policyname = 'Users can update their own media'
+    AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Users can update their own media"
+      ON storage.objects
+      FOR UPDATE
+      TO authenticated
+      USING (
+        bucket_id = 'listings' 
+        AND (storage.foldername(name))[1] = auth.uid()::text
+      )
+      WITH CHECK (
+        bucket_id = 'listings' 
+        AND (storage.foldername(name))[1] = auth.uid()::text
+      );
+  END IF;
+END
+$$;
 
 -- Policy 4: Authenticated users can delete their own files
-CREATE POLICY "Users can delete their own media"
-  ON storage.objects
-  FOR DELETE
-  TO authenticated
-  USING (
-    bucket_id = 'listings' 
-    AND (storage.foldername(name))[1] = auth.uid()::text
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND policyname = 'Users can delete their own media'
+    AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Users can delete their own media"
+      ON storage.objects
+      FOR DELETE
+      TO authenticated
+      USING (
+        bucket_id = 'listings' 
+        AND (storage.foldername(name))[1] = auth.uid()::text
+      );
+  END IF;
+END
+$$;
 
 -- =====================================================
 -- Notes:

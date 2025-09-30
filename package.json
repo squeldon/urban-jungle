@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "release": "standard-version"
+    "release": "standard-version",
+    "seed:listings": "node scripts/seed-listings.mjs",
+    "seed:md": "node scripts/seed-md-listings.mjs",
+    "delete:listings": "node scripts/delete-all-listings.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -15,7 +18,7 @@
     "@tailwindcss/line-clamp": "^0.4.4",
     "@types/leaflet": "^1.9.20",
     "clsx": "^2.1.1",
-    "firebase": "^12.2.1",
+    "dotenv": "^17.2.3",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.2.1",
     "lucide-react": "^0.544.0",

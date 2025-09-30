@@ -68,6 +68,7 @@ export async function getUserQuota(userId: string): Promise<UserQuota> {
 
 /**
  * Create initial quota for new user
+ * Uses upsert to handle race conditions gracefully
  */
 async function createInitialQuota(userId: string): Promise<UserQuota> {
   const initialQuota: UserQuota = {
@@ -80,25 +81,44 @@ async function createInitialQuota(userId: string): Promise<UserQuota> {
     monthlyUploadLimit: UPLOAD_LIMITS.free
   };
   
+  // Use upsert to handle the case where quota already exists
   const { error } = await supabase
     .from('user_quotas')
-    .insert({
+    .upsert({
       user_id: userId,
       storage_used_bytes: 0,
       monthly_uploads_count: 0,
       quota_reset_date: new Date().toISOString().split('T')[0]
+    }, {
+      onConflict: 'user_id',
+      ignoreDuplicates: true  // Don't update if it already exists
     });
   
   if (error) {
     console.error('Error creating initial quota:', error);
-    // If it already exists (race condition), fetch it
-    if (error.code === '23505') {
-      return getUserQuota(userId);
-    }
     throw error;
   }
   
-  return initialQuota;
+  // Fetch the actual quota (in case it already existed with different values)
+  const { data, error: fetchError } = await supabase
+    .from('user_quotas')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  
+  if (fetchError || !data) {
+    return initialQuota;
+  }
+  
+  return {
+    userId,
+    subscriptionTier: 'free',
+    storageUsed: data.storage_used_bytes || 0,
+    storageLimit: STORAGE_LIMITS.free,
+    lastUpdated: new Date(data.updated_at),
+    monthlyUploads: data.monthly_uploads_count || 0,
+    monthlyUploadLimit: UPLOAD_LIMITS.free
+  };
 }
 
 /**

@@ -50,7 +50,7 @@ export default function TestSupabasePage() {
     setInsertTest({ status: 'loading' });
     try {
       const tables = ['listings', 'drafts', 'listing_presets', 'filter_presets', 'favorites', 'user_quotas', 'listing_media'];
-      const results: any = {};
+      const results: Record<string, string> = {};
       
       for (const table of tables) {
         const { error } = await supabase.from(table).select('id').limit(1);

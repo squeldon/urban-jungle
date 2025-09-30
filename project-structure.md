@@ -4,7 +4,7 @@
 - **Language**: TypeScript 5.9
 - **UI**: React 19, Tailwind CSS 4, `lucide-react` icons, `clsx`, `tailwind-merge`
 - **Maps**: Leaflet 1.9, `react-leaflet` 5, `leaflet-geosearch`
-- **Backend-as-a-Service**: Firebase 12 (Auth, Firestore, Storage)
+- **Backend-as-a-Service**: Supabase (Auth, Postgres, Storage)
 - **Build/Tooling**: ESLint 9, PostCSS, Autoprefixer
 
 External packages (from `package.json`):
@@ -14,16 +14,16 @@ External packages (from `package.json`):
 - Utilities: `clsx@^2.1.1`, `tailwind-merge@^3.3.1`
 - Icons: `lucide-react@^0.544.0`
 - Maps: `leaflet@^1.9.4`, `react-leaflet@^5.0.0`, `leaflet-geosearch@^4.2.1`, `@types/leaflet@^1.9.20`
-- Firebase: `firebase@^12.2.1`
+- Supabase: `@supabase/supabase-js`
 - Linting/Types: `eslint@9.35.0`, `eslint-config-next@15.5.2`, `typescript@5.9.2`, `@types/node@24.3.1`, `@types/react@19.1.12`, `@types/react-dom@19.1.9`
 - Release tooling: `standard-version@^9.5.0`
 
-Firebase services used and configuration:
+Supabase services used and configuration:
 
-- Auth: Email/password auth via `firebase/auth`
-- Firestore: Collections `listings`, `drafts`, `listingPresets`, `userQuotas`, and user subcollection `users/{userId}/filterPresets`
-- Storage: Media uploads (images/videos) under paths `listings/{userId}/{listingId}/...`
-- Config from env: `NEXT_PUBLIC_FIREBASE_*` vars read in `src/firebase/config.ts`
+- Auth: Email/password auth via Supabase Auth
+- Database: Postgres tables `listings`, `drafts`, `listing_presets`, `filter_presets`, `user_quotas`, `listing_media`
+- Storage: Media uploads (images/videos) under paths `listings/{userId}/{listingId}/...` in the `listings` bucket
+- Config from env: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` read in `src/supabase/client.ts`
 
 
 ## Project Tree
@@ -33,11 +33,12 @@ Top-level overview:
 - `src/app`: App Router pages/layout
 - `src/components`: UI components, forms, panels, and feature UIs
 - `src/context`: React contexts
-- `src/firebase`: Firebase config and thin wrappers
-- `src/hooks`: Custom hooks (state/Firestore integration)
-- `src/lib`: Domain/data access utilities (Firestore and Storage), geography helpers
+- `src/supabase`: Supabase client, auth, and storage modules
+- `src/hooks`: Custom hooks (state/database integration)
+- `src/lib`: Domain/data access utilities (database and storage), geography helpers
 - `src/styles`: Global or feature CSS
 - `src/types`: Shared TypeScript types
+- `supabase/migrations`: SQL migration files for database schema
 
 
 ### src/app
@@ -167,7 +168,7 @@ Listing Form
 
 - `src/components/forms/ImageUploadSection.tsx`
   - Purpose: Upload/list/manage media files.
-  - Depends on: `@/lib/firebase/storage`, `@/types/listing`.
+  - Depends on: `@/supabase/storage`, `@/types/listing`.
 
 - `src/components/forms/CompsSection.tsx`
   - Purpose: Manage comparable sales entries.
@@ -201,34 +202,34 @@ Modals
 ### src/context
 
 - `src/context/AuthContext.tsx`
-  - Purpose: Provides current Firebase Auth user and loading state.
-  - Depends on: `firebase/auth`, `@/firebase/config`.
+  - Purpose: Provides current Supabase Auth user and loading state.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`.
 
 
-### src/firebase
+### src/supabase
 
-- `src/firebase/config.ts`
-  - Purpose: Initialize and export singleton Firebase app instance using env-based config.
-  - Depends on: `firebase/app`.
+- `src/supabase/client.ts`
+  - Purpose: Initialize and export singleton Supabase client using env-based config.
+  - Depends on: `@supabase/supabase-js`.
 
-- `src/firebase/auth/signIn.ts`, `signup.ts`
-  - Purpose: Thin wrappers over `firebase/auth` email/password APIs returning `{ result, error }`.
-  - Depends on: `firebase/auth`, `@/firebase/config`.
+- `src/supabase/auth/signIn.ts`, `signUp.ts`, `signOut.ts`
+  - Purpose: Thin wrappers over Supabase Auth email/password APIs returning `{ result, error }`.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`.
 
-- `src/firebase/firestore/addData.ts`, `getData.js`
-  - Purpose: Minimal helpers to set/get a doc by id for generic collections.
-  - Depends on: `firebase/firestore`, `@/firebase/config`.
+- `src/supabase/storage.ts`
+  - Purpose: Storage utilities for uploading, deleting, and managing media files with quota tracking.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`, `@/lib/db/userQuotas`, `@/lib/db/listingMedia`.
 
 
 ### src/hooks
 
 - `src/hooks/useFilters.ts`
-  - Purpose: Client-side filter state with localStorage persistence and helpers to convert to Firestore query filters.
+  - Purpose: Client-side filter state with localStorage persistence and helpers to convert to database query filters.
   - Depends on: `@/types/listing`.
 
 - `src/hooks/useListings.ts`
   - Purpose: Fetch and paginate listings with optional filters; toggle favorites; increment view counts.
-  - Depends on: `@/lib/firestore/listings`, `@/context/AuthContext`, `@/types/listing`, `firebase/firestore` types.
+  - Depends on: `@/lib/db/listings`, `@/context/AuthContext`, `@/types/listing`.
 
 - `src/hooks/useListingForm.ts`
   - Purpose: State manager for the create/edit listing form, including nested updates and list utilities.
@@ -236,42 +237,40 @@ Modals
 
 - `src/hooks/useDrafts.ts`
   - Purpose: Manage user drafts (CRUD + publish), with error/loading state.
-  - Depends on: `@/lib/firestore/drafts`, `@/context/AuthContext`, `@/types/listing`.
+  - Depends on: `@/lib/db/drafts`, `@/context/AuthContext`, `@/types/listing`.
 
 - `src/hooks/usePresets.ts`
   - Purpose: Manage user presets for the form.
-  - Depends on: `@/lib/firestore/presets`, `@/context/AuthContext`, `@/types/listing`.
+  - Depends on: `@/lib/db/presets`, `@/context/AuthContext`, `@/types/listing`.
 
 
 ### src/lib
 
-Firestore data layer
+Database data layer
 
-- `src/lib/firestore/listings.ts`
-  - Purpose: CRUD for listings, server-side querying with Firestore constraints, client-side post-filtering for complex fields; favorites and view counts.
-  - Depends on: `firebase/firestore`, `@/firebase/config`, `@/types/listing`, `@/lib/firebase/storage` (cleanup helpers).
+- `src/lib/db/listings.ts`
+  - Purpose: CRUD for listings, server-side querying with Postgres/Supabase, filtering; favorites and view counts.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`, `@/types/listing`, `@/supabase/storage` (cleanup helpers).
 
-- `src/lib/firestore/drafts.ts`
+- `src/lib/db/drafts.ts`
   - Purpose: CRUD for drafts with image cleanup; publish draft -> listing.
-  - Depends on: `firebase/firestore`, `@/firebase/config`, `@/types/listing`, `./listings`, `@/lib/firebase/storage`.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`, `@/types/listing`, `./listings`, `@/supabase/storage`.
 
-- `src/lib/firestore/presets.ts`
-  - Purpose: CRUD for listing presets stored in `listingPresets` collection.
-  - Depends on: `firebase/firestore`, `@/firebase/config`, `@/types/listing`.
+- `src/lib/db/presets.ts`
+  - Purpose: CRUD for listing presets stored in `listing_presets` table.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`, `@/types/listing`.
 
-- `src/lib/firestore/filterPresets.ts`
-  - Purpose: CRUD for user-specific saved search/filter presets under `users/{userId}/filterPresets`.
-  - Depends on: `firebase/firestore`, `@/firebase/config`, `@/hooks/useFilters` for types/sanitization.
+- `src/lib/db/filterPresets.ts`
+  - Purpose: CRUD for user-specific saved search/filter presets in `filter_presets` table.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`, `@/hooks/useFilters` for types/sanitization.
 
-- `src/lib/firestore/userQuotas.ts`
+- `src/lib/db/userQuotas.ts`
   - Purpose: Track per-user storage usage and monthly upload counts; helper checks and formatters.
-  - Depends on: `firebase/firestore`, `@/firebase/config`.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`.
 
-Storage
-
-- `src/lib/firebase/storage.ts`
-  - Purpose: Upload/delete media files with validation and quota tracking; helpers for URL parsing and media type checks.
-  - Depends on: `firebase/storage`, `@/firebase/config`, `@/lib/firestore/userQuotas`.
+- `src/lib/db/listingMedia.ts`
+  - Purpose: Track media files associated with listings for quota and cleanup purposes.
+  - Depends on: `@supabase/supabase-js`, `@/supabase/client`.
 
 Geography
 
@@ -300,9 +299,10 @@ Geography
 
 Notes on dependencies and data flow
 
-- UI components depend on hooks for state and on `src/lib/firestore/*` for data access.
-- Hooks transform UI-friendly state into Firestore queries and back.
-- Firestore modules encapsulate all server-side constraints and conversions (e.g., `Timestamp` <-> `Date`).
-- Storage module coordinates with user quotas for safe uploads/deletions.
+- UI components depend on hooks for state and on `src/lib/db/*` for data access.
+- Hooks transform UI-friendly state into Supabase/Postgres queries and back.
+- Database modules encapsulate all server-side constraints and conversions (e.g., database row <-> TypeScript types).
+- Storage module coordinates with user quotas and media tracking for safe uploads/deletions.
+- Row Level Security (RLS) policies enforce authorization at the database level.
 
 

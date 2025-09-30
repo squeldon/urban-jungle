@@ -66,7 +66,7 @@ export default function ListingCard({
         >
           <Heart
             className={`w-4 h-4 ${
-              user && listing.favorites.includes(user.uid)
+              user && listing.favorites.includes(user.id)
                 ? 'fill-red-500 text-red-500'
                 : 'text-gray-600'
             }`}

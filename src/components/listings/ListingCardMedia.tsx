@@ -1,5 +1,5 @@
 import { PropertyListing } from '@/types/listing';
-import { getFileTypeFromUrl } from '@/lib/firebase/storage';
+import { getFileTypeFromUrl } from '@/supabase/storage';
 import { ChevronLeft, ChevronRight, Play, Home } from 'lucide-react';
 
 interface ListingCardMediaProps {

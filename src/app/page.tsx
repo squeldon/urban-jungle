@@ -2,8 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { signOut, getAuth } from 'firebase/auth';
-import firebase_app from '@/firebase/config';
+import signOut from '@/supabase/auth/signOut';
 import { useFilters } from '@/hooks/useFilters';
 import Header from '@/components/header/Header';
 import FilterPopup from '@/components/filters/FilterPopup';
@@ -55,8 +54,7 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      const auth = getAuth(firebase_app);
-      await signOut(auth);
+      await signOut();
     } catch (error) {
       console.error('Logout error:', error);
     }

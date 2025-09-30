@@ -2,6 +2,7 @@ interface AuthSignupProps {
   email: string;
   password: string;
   error: string;
+  successMessage?: string;
   loading: boolean;
   onEmailChange: (email: string) => void;
   onPasswordChange: (password: string) => void;
@@ -13,6 +14,7 @@ export default function AuthSignup({
   email,
   password,
   error,
+  successMessage,
   loading,
   onEmailChange,
   onPasswordChange,
@@ -28,6 +30,12 @@ export default function AuthSignup({
       {error && (
         <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm">
           {error}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg text-blue-700 dark:text-blue-400 text-sm">
+          {successMessage}
         </div>
       )}
       

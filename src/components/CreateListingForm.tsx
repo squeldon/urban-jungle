@@ -624,12 +624,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
                 <AddressSection 
                   formData={formData} 
                   onChange={handleInputChange}
-                  onLocationSelect={(lat, lng, coordinates) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      coordinates: coordinates || { lat, lng }
-                    }));
-                  }}
+                  onLocationSelect={handleLocationSelect}
                 />
               </div>
 

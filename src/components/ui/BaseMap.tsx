@@ -27,6 +27,8 @@ interface BaseMapProps {
 export interface BaseMapRef {
   invalidateSize: () => void;
   setView: (center: [number, number], zoom?: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 }
 
 export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({ 
@@ -52,6 +54,16 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
     setView: (center: [number, number], zoom?: number) => {
       if (mapRef.current) {
         mapRef.current.setView(center, zoom);
+      }
+    },
+    zoomIn: () => {
+      if (mapRef.current) {
+        mapRef.current.zoomIn();
+      }
+    },
+    zoomOut: () => {
+      if (mapRef.current) {
+        mapRef.current.zoomOut();
       }
     }
   }), []);

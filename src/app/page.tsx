@@ -10,6 +10,7 @@ import FilterPopup from '@/components/filters/FilterPopup';
 import AuthPopup from '@/components/auth/AuthPopup';
 import MainPanel from '@/components/MainPanel';
 import { SearchAreaResult, MapOverlay } from '@/types/map';
+import { calculateZoomLevel } from '@/lib/geographic';
 
 export default function Home() {
   const [showAuthPopup, setShowAuthPopup] = useState(false);
@@ -18,6 +19,7 @@ export default function Home() {
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [squareSize, setSquareSize] = useState(265); // Default medium square size
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapZoom, setMapZoom] = useState<number>(13);
   const [mapOverlays, setMapOverlays] = useState<MapOverlay[]>([]);
   const [locationFilter, setLocationFilter] = useState<ListingFilters['location'] | null>(null);
   
@@ -85,7 +87,25 @@ export default function Home() {
   const handleAreaSelect = (area: SearchAreaResult) => {
     // Set map center to the area center
     setMapCenter(area.center);
-    
+
+    // Calculate appropriate zoom level based on area bounds
+    let calculatedZoom = 13; // Default zoom level
+    if (area.bounds) {
+      calculatedZoom = calculateZoomLevel(area.bounds);
+    } else if (area.polygon && area.polygon.length > 0) {
+      // For polygon areas, calculate bounds from the polygon
+      const lats = area.polygon.map(([lat]) => lat);
+      const lngs = area.polygon.map(([, lng]) => lng);
+      const bounds = {
+        north: Math.max(...lats),
+        south: Math.min(...lats),
+        east: Math.max(...lngs),
+        west: Math.min(...lngs)
+      };
+      calculatedZoom = calculateZoomLevel(bounds);
+    }
+    setMapZoom(calculatedZoom);
+
     // Add area overlay to the map
     if (area.overlay) {
       setMapOverlays([area.overlay]);
@@ -176,12 +196,13 @@ export default function Home() {
 
       {/* Main content area below header */}
       <main className="flex-1">
-        <MainPanel 
+        <MainPanel
           showMapPanel={showMapPanel}
           activeFiltersCount={getActiveFilters().length}
           squareSize={squareSize}
           filters={combinedFilters}
           mapCenter={mapCenter}
+          mapZoom={mapZoom}
           mapOverlays={mapOverlays}
           onOverlayClick={handleOverlayClick}
           onSquareSizeChange={setSquareSize}

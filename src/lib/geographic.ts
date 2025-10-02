@@ -333,3 +333,42 @@ export function isValidCoordinates(lat: number, lng: number): boolean {
     lng <= 180
   );
 }
+
+/**
+ * Calculate appropriate zoom level for map based on geographic bounds
+ * @param bounds Geographic bounds (north, south, east, west)
+ * @param mapWidthPx Map width in pixels (default: 800)
+ * @param mapHeightPx Map height in pixels (default: 600)
+ * @returns Zoom level between 1 (world view) and 18 (street level)
+ */
+export function calculateZoomLevel(
+  bounds: GeographicBounds,
+  mapWidthPx: number = 800,
+  mapHeightPx: number = 600
+): number {
+  const latDiff = bounds.north - bounds.south;
+  const lngDiff = bounds.east - bounds.west;
+
+  // Avoid division by zero
+  if (latDiff === 0 && lngDiff === 0) {
+    return 15; // Default zoom for point locations
+  }
+
+  // Calculate the zoom level based on the larger dimension
+  const maxDiff = Math.max(latDiff, lngDiff);
+
+  // Estimate zoom level using empirical formula
+  // This is an approximation - Leaflet zoom levels are logarithmic
+  let zoom = Math.floor(Math.log2(360 / maxDiff));
+
+  // Adjust for map size - smaller maps need higher zoom for same area
+  const mapSize = Math.min(mapWidthPx, mapHeightPx);
+  if (mapSize < 400) {
+    zoom -= 1; // Smaller maps need to zoom in more
+  } else if (mapSize > 1200) {
+    zoom += 1; // Larger maps can show more area at same zoom
+  }
+
+  // Clamp zoom level to reasonable bounds
+  return Math.max(1, Math.min(18, zoom));
+}

@@ -9,13 +9,15 @@ interface MapPanelProps {
   hasActiveFilters?: boolean;
   headerHeight: number;
   mapCenter?: [number, number] | null;
+  mapZoom?: number;
   overlays?: MapOverlay[];
   onOverlayClick?: (overlay: MapOverlay) => void;
 }
 
-export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight, mapCenter, overlays = [], onOverlayClick }: MapPanelProps) {
+export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight, mapCenter, mapZoom = 13, overlays = [], onOverlayClick }: MapPanelProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentCenter, setCurrentCenter] = useState<[number, number]>([39.2904, -76.6122]); // Default to Baltimore
+  const [currentZoom, setCurrentZoom] = useState<number>(mapZoom);
   const baseMapRef = useRef<BaseMapRef>(null);
 
   const handleFullscreenToggle = () => {
@@ -29,12 +31,15 @@ export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeigh
     }, 300);
   };
 
-  // Update map center when prop changes
+  // Update map center and zoom when props change
   useEffect(() => {
     if (mapCenter) {
       setCurrentCenter(mapCenter);
     }
-  }, [mapCenter]);
+    if (mapZoom) {
+      setCurrentZoom(mapZoom);
+    }
+  }, [mapCenter, mapZoom]);
 
   if (!isOpen) return null;
 
@@ -65,7 +70,7 @@ export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeigh
           <BaseMap
             ref={baseMapRef}
             center={currentCenter}
-            zoom={13}
+            zoom={currentZoom}
             overlays={overlays}
             onOverlayClick={onOverlayClick}
             className="w-full h-full"

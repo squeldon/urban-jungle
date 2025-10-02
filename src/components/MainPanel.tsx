@@ -12,11 +12,12 @@ interface MainPanelProps {
   filters?: ListingFilters;
   onSquareSizeChange: (size: number) => void;
   mapCenter?: [number, number] | null;
+  mapZoom?: number;
   mapOverlays?: MapOverlay[];
   onOverlayClick?: (overlay: MapOverlay) => void;
 }
 
-export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, onSquareSizeChange, mapCenter, mapOverlays, onOverlayClick }: MainPanelProps) {
+export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, onSquareSizeChange, mapCenter, mapZoom, mapOverlays, onOverlayClick }: MainPanelProps) {
   const [headerHeight, setHeaderHeight] = useState(80); // Default fallback
 
   // Dynamically measure header height
@@ -58,11 +59,12 @@ export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize
       />
 
       {/* Map Panel - positioned fixed, so doesn't affect layout */}
-      <MapPanel 
-        isOpen={showMapPanel} 
+      <MapPanel
+        isOpen={showMapPanel}
         hasActiveFilters={activeFiltersCount > 0}
         headerHeight={headerHeight}
         mapCenter={mapCenter}
+        mapZoom={mapZoom}
         overlays={mapOverlays}
         onOverlayClick={onOverlayClick}
       />

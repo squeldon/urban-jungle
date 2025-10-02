@@ -15,7 +15,7 @@ interface MapPanelProps {
 
 export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight, mapCenter, overlays = [], onOverlayClick }: MapPanelProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [currentCenter, setCurrentCenter] = useState<[number, number]>([40.7128, -74.0060]); // Default to NYC
+  const [currentCenter, setCurrentCenter] = useState<[number, number]>([39.2904, -76.6122]); // Default to Baltimore
   const baseMapRef = useRef<BaseMapRef>(null);
 
   const handleFullscreenToggle = () => {

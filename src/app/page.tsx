@@ -14,7 +14,7 @@ import { SearchAreaResult, MapOverlay } from '@/types/map';
 export default function Home() {
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showMapPanel, setShowMapPanel] = useState(false);
+  const [showMapPanel, setShowMapPanel] = useState(true);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [squareSize, setSquareSize] = useState(265); // Default medium square size
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -74,13 +74,13 @@ export default function Home() {
     setShowFilterPopup(!showFilterPopup);
   };
 
-  const handleLocationSelect = (lat: number, lng: number, name: string) => {
-    setMapCenter([lat, lng]);
-    // Auto-open map panel when location is selected
-    if (!showMapPanel) {
-      setShowMapPanel(true);
-    }
-  };
+  // const handleLocationSelect = (lat: number, lng: number, name: string) => {
+  //   setMapCenter([lat, lng]);
+  //   // Auto-open map panel when location is selected
+  //   if (!showMapPanel) {
+  //     setShowMapPanel(true);
+  //   }
+  // };
 
   const handleAreaSelect = (area: SearchAreaResult) => {
     // Set map center to the area center
@@ -116,9 +116,9 @@ export default function Home() {
     setLocationFilter(newLocationFilter);
     
     // Auto-open map panel when area is selected
-    if (!showMapPanel) {
-      setShowMapPanel(true);
-    }
+    // if (!showMapPanel) {
+    //   setShowMapPanel(true);
+    // }
   };
 
   const handleOverlayClick = (overlay: MapOverlay) => {
@@ -157,7 +157,7 @@ export default function Home() {
         onToggleArrayFilter={toggleArrayFilter}
         onLogout={handleLogout}
         onSquareSizeChange={setSquareSize}
-        onLocationSelect={handleLocationSelect}
+        // onLocationSelect={handleLocationSelect}
         onAreaSelect={handleAreaSelect}
       />
 

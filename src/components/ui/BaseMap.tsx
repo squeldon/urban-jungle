@@ -213,7 +213,7 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
         </div>
       )}
 
-      {/* Disclaimer */}
+      {/* Disclaimer
       {showDisclaimer && (
         <div className="absolute top-4 left-4 p-2 bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-md z-10 max-w-48">
           <p className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
@@ -222,7 +222,7 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
             </span>
           </p>
         </div>
-      )}
+      )} */}
     </div>
   );
 });

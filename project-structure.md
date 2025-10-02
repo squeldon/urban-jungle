@@ -21,8 +21,9 @@ External packages (from `package.json`):
 Supabase services used and configuration:
 
 - Auth: Email/password auth via Supabase Auth
-- Database: Postgres tables `listings`, `drafts`, `listing_presets`, `filter_presets`, `user_quotas`, `listing_media`
+- Database: Postgres tables `listings`, `drafts`, `listing_presets`, `filter_presets`, `user_quotas`, `listing_media`, `favorites`
 - Storage: Media uploads (images/videos) under paths `listings/{userId}/{listingId}/...` in the `listings` bucket
+- PostGIS: Spatial queries for location-based filtering (radius, bounds, polygon)
 - Config from env: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` read in `src/supabase/client.ts`
 
 
@@ -48,16 +49,20 @@ Top-level overview:
   - Depends on: `@/context/AuthContext`, Next font `next/font/google`, global styles.
 
 - `src/app/page.tsx`
-  - Purpose: Home page. Orchestrates header, filters, authentication modal, and main content panels (listings + map). Manages filter state via `useFilters` and map overlays/center.
-  - Depends on: `@/context/AuthContext`, `next/navigation`, `firebase/auth`, `@/firebase/config`, `@/hooks/useFilters`, `@/components/header/Header`, `@/components/filters/FilterPopup`, `@/components/auth/AuthPopup`, `@/components/MainPanel`, `@/types/map`.
+  - Purpose: Home page. Orchestrates header, filters, authentication modal, and main content panels (listings + map). Manages filter state via `useFilters` and map overlays/center. Combines location filters (polygon/bounds/radius) with regular listing filters for PostGIS spatial queries.
+  - Depends on: `@/context/AuthContext`, `next/navigation`, `@/supabase/auth/signOut`, `@/hooks/useFilters`, `@/components/header/Header`, `@/components/filters/FilterPopup`, `@/components/auth/AuthPopup`, `@/components/MainPanel`, `@/types/map`.
 
 - `src/app/listings/[id]/page.tsx`
   - Purpose: Dynamic listing detail page (by id). Displays individual listing details.
-  - Depends on: Listing Firestore utilities and listing types.
+  - Depends on: `@/lib/db/listings`, listing types from `@/types/listing`.
 
 - `src/app/profile/page.tsx`
-  - Purpose: User profile dashboard page.
-  - Depends on: Auth context, user listings/drafts/presets hooks.
+  - Purpose: User profile dashboard page. Displays and manages user's listings and drafts with tabs, create/edit/delete functionality, and draft publishing.
+  - Depends on: `@/context/AuthContext`, `@/hooks/useListings`, `@/hooks/useDrafts`, `@/components/CreateListingForm`, `@/components/DeleteConfirmationModal`, `lucide-react`.
+
+- `src/app/test-supabase/page.tsx`
+  - Purpose: Test page for Supabase connection and functionality.
+  - Depends on: `@/supabase/client`, `@/context/AuthContext`.
 
 
 ### src/components (selected groups)
@@ -96,7 +101,7 @@ Auth
 
 - `src/components/auth/AuthPopup.tsx`
   - Purpose: Modal for sign-in/sign-up flow.
-  - Depends on: `@/firebase/auth/signIn`, `@/firebase/auth/signup`, React state.
+  - Depends on: `@/supabase/auth/signIn`, `@/supabase/auth/signUp`, React state.
 
 - `src/components/auth/AuthInitial.tsx`, `AuthLogin.tsx`, `AuthSignup.tsx`
   - Purpose: Step subviews for auth flow.
@@ -139,8 +144,8 @@ Listings
 Listing Form
 
 - `src/components/CreateListingForm.tsx`
-  - Purpose: Multi-section form to create/update listings and drafts, manage presets, local storage persistence, and image uploads.
-  - Depends on: `@/context/AuthContext`, `@/lib/firestore/listings`, `@/hooks/useListingForm`, `@/hooks/useDrafts`, `@/hooks/usePresets`, form section components, `lucide-react`.
+  - Purpose: Multi-section form to create/update listings and drafts, manage presets, local storage persistence, and image uploads to Supabase Storage.
+  - Depends on: `@/context/AuthContext`, `@/lib/db/listings`, `@/hooks/useListingForm`, `@/hooks/useDrafts`, `@/hooks/usePresets`, form section components, `lucide-react`.
 
 - `src/components/forms/BasicInfoSection.tsx`
   - Purpose: Collects title, type, and core listing metadata.
@@ -249,8 +254,9 @@ Modals
 Database data layer
 
 - `src/lib/db/listings.ts`
-  - Purpose: CRUD for listings, server-side querying with Postgres/Supabase, filtering; favorites and view counts.
+  - Purpose: CRUD for listings, server-side querying with Postgres/Supabase. Implements PostGIS spatial queries (radius, bounds, polygon) for location-based filtering. Handles favorites, view counts, pagination, and storage cleanup.
   - Depends on: `@supabase/supabase-js`, `@/supabase/client`, `@/types/listing`, `@/supabase/storage` (cleanup helpers).
+  - Key functions: `createListing`, `getListing`, `getListings`, `getUserListings`, `updateListing`, `deleteListing`, `toggleFavorite`, `incrementViewCount`, `getListingsWithinRadius`, `getListingsWithinBounds`, `getListingsWithinPolygon`, `getNearestListings`, `calculateDistance`.
 
 - `src/lib/db/drafts.ts`
   - Purpose: CRUD for drafts with image cleanup; publish draft -> listing.
@@ -269,8 +275,14 @@ Database data layer
   - Depends on: `@supabase/supabase-js`, `@/supabase/client`.
 
 - `src/lib/db/listingMedia.ts`
-  - Purpose: Track media files associated with listings for quota and cleanup purposes.
+  - Purpose: Track media files associated with listings for quota and cleanup purposes in the `listing_media` table.
   - Depends on: `@supabase/supabase-js`, `@/supabase/client`.
+
+Config
+
+- `src/lib/config/*`
+  - Purpose: Configuration files and environment variable handling.
+  - Depends on: Environment variables, Next.js config.
 
 Geography
 
@@ -297,12 +309,38 @@ Geography
   - Depends on: TypeScript only.
 
 
+### supabase/migrations
+
+SQL migration files that define the database schema:
+
+- `000_cleanup.sql` - Cleanup script for fresh installations
+- `001_initial_schema.sql` - Core tables (`listings`, `drafts`, `listing_presets`, `filter_presets`, `user_quotas`, `listing_media`, `favorites`)
+- `002_row_level_security.sql` - RLS policies for secure data access
+- `003_storage_policies.sql` - Storage bucket policies for media uploads
+- `004_quota_functions.sql` - Database functions for quota management
+- `005_listing_functions.sql` - Database functions for listings (view counts, etc.)
+- `006_enable_postgis.sql` - Enable PostGIS extension for spatial queries
+- `007_fix_media_constraint.sql` - Fix constraints for media table
+
+
+### scripts
+
+Utility scripts for development and data seeding:
+
+- `scripts/seed-listings.mjs` - Seed sample listings to the database
+- `scripts/seed-md-listings.mjs` - Seed Maryland-specific listings
+- `scripts/delete-all-listings.mjs` - Delete all listings (development tool)
+
+
 Notes on dependencies and data flow
 
 - UI components depend on hooks for state and on `src/lib/db/*` for data access.
 - Hooks transform UI-friendly state into Supabase/Postgres queries and back.
-- Database modules encapsulate all server-side constraints and conversions (e.g., database row <-> TypeScript types).
+- Database modules encapsulate all server-side constraints and conversions (e.g., database row <-> TypeScript types, camelCase <-> snake_case).
 - Storage module coordinates with user quotas and media tracking for safe uploads/deletions.
-- Row Level Security (RLS) policies enforce authorization at the database level.
+- Row Level Security (RLS) policies enforce authorization at the database level (see `002_row_level_security.sql`).
+- PostGIS extension enables efficient spatial queries for location-based filtering (radius, bounds, polygon).
+- Spatial queries use database functions defined in `supabase/migrations/` for optimal performance.
+- Pagination uses cursor-based approach with `created_at` and `id` for consistent ordering.
 
 

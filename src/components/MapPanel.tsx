@@ -54,12 +54,11 @@ export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeigh
           fixed z-40 transition-all duration-300 ease-in-out
           ${isFullscreen
             ? 'right-4 bottom-4 w-[calc(100vw-3rem)]'
-            : 'right-4 bottom-6 w-[calc(40vw-1.5rem)] lg:w-[calc(40vw-1.5rem)]'
+            : 'right-4 bottom-4 w-[calc(40vw-3rem)] lg:w-[calc(40vw-2rem)]'
           }
         `}
         style={{
-          top: `${headerHeight + 16}px`,
-          height: `calc(100vh - ${headerHeight + 16}px - 1.5rem)`,
+          top: `${headerHeight+16}px`,
         }}
       >
         <div className="relative w-full h-full bg-gray-100 dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">

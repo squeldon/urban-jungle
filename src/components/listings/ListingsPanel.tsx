@@ -5,15 +5,21 @@ import { useListings } from '@/hooks/useListings';
 import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing, ListingFilters } from '@/types/listing';
 import ListingCard from './ListingCard';
+import GridSizeControls from '../header/GridSizeControls';
 
 interface ListingsPanelProps {
   isMapOpen: boolean;
   squareSize: number;
-  headerHeight: number;
+  onSquareSizeChange: (size: number) => void;
   filters?: ListingFilters;
 }
 
-export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, filters }: ListingsPanelProps) {
+export default function ListingsPanel({ 
+  isMapOpen, 
+  squareSize, 
+  onSquareSizeChange, 
+  filters 
+}: ListingsPanelProps) {
   const [columns, setColumns] = useState(3);
   const { user } = useAuthContext() as { user: any };
   const router = useRouter();
@@ -103,7 +109,6 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
       <div className="bg-white dark:bg-gray-900 min-h-screen">
         <div 
           className={`${isMapOpen ? 'w-[60vw]' : 'w-full'} transition-all duration-300`}
-          style={{ paddingTop: `${headerHeight - 15}px` }}
         >
           <div className="p-6">
             <div className="text-center text-red-600 dark:text-red-400">
@@ -120,12 +125,15 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
       {/* Content container - width adjusts based on map state */}
       <div 
         className={`${isMapOpen ? 'w-[60vw]' : 'w-full'} transition-all duration-300`}
-        style={{
-          paddingTop: `${headerHeight - 15}px`, // Dynamic padding based on header height + spacing
-        }}
       >
-        <div className="p-6">
-          <div className="mb-2">
+        <div>
+          <div className="mb-2 flex justify-between pl-7 pr-7 pt-2 pb-2">
+            <div className="flex items-center gap-3">
+              <GridSizeControls 
+                squareSize={squareSize}
+                onSquareSizeChange={onSquareSizeChange}
+              />
+            </div>
             <p className="text-gray-600 dark:text-gray-400">
               {loading ? 'Loading...' : `${listings.length} properties found`}
             </p>
@@ -134,7 +142,7 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
           {/* Grid of listing cards */}
           {loading && listings.length === 0 ? (
             // Loading skeleton
-            <div className={`grid justify-items-center ${getGridCols()} pr-3`} style={{ gap: '0.5rem' }}>
+            <div className={`grid justify-items-center ${getGridCols()}`} style={{ gap: '0.5rem' }}>
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
@@ -148,7 +156,7 @@ export default function ListingsPanel({ isMapOpen, squareSize, headerHeight, fil
             </div>
           ) : (
             <>
-              <div className={`grid justify-items-center ${getGridCols()} pr-3`} style={{ gap: '0.5rem' }}>
+              <div className={`grid justify-items-center ${getGridCols()}`} style={{ gap: '0.5rem' }}>
                 {listings.map((listing) => (
                   <ListingCard
                     key={listing.id}

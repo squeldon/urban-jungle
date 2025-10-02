@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { ActiveFilter, FilterState } from '@/hooks/useFilters';
 import { SearchAreaResult } from '@/types/map';
-import GridSizeControls from './GridSizeControls';
 import SearchBar from './SearchBar';
 import UserMenu from './UserMenu';
 import FilterBubbles from './FilterBubbles';
@@ -14,7 +13,6 @@ interface HeaderProps {
   showMapPanel: boolean;
   activeFilters: ActiveFilter[];
   filters: FilterState;
-  squareSize: number;
   onUserIconClick: () => void;
   onLoginOption: () => void;
   onToggleFilter: () => void;
@@ -23,8 +21,7 @@ interface HeaderProps {
   onUpdateFilter: (key: string, value: any) => void;
   onToggleArrayFilter: (key: string, value: string) => void;
   onLogout: () => void;
-  onSquareSizeChange: (size: number) => void;
-  onLocationSelect: (lat: number, lng: number, name: string) => void;
+  // onLocationSelect: (lat: number, lng: number, name: string) => void;
   onAreaSelect?: (area: SearchAreaResult) => void;
 }
 
@@ -34,7 +31,6 @@ export default function Header({
   showMapPanel,
   activeFilters,
   filters,
-  squareSize,
   onUserIconClick,
   onLoginOption,
   onToggleFilter,
@@ -43,8 +39,7 @@ export default function Header({
   onUpdateFilter,
   onToggleArrayFilter,
   onLogout,
-  onSquareSizeChange,
-  onLocationSelect,
+  // onLocationSelect,
   onAreaSelect,
 }: HeaderProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -127,18 +122,15 @@ export default function Header({
     <header className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-white/80 dark:bg-black/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
       <div className="flex items-center p-6">
         <div className="flex-1 flex items-center">
-          <div className="flex items-center gap-3">
-            <GridSizeControls 
-              squareSize={squareSize}
-              onSquareSizeChange={onSquareSizeChange}
-            />
-          </div>
         </div>
 
         {/* Centered Search Bar */}
         <div className="flex justify-center flex-[2]">
           <div className="flex items-center gap-2 w-full">
-            <SearchBar onLocationSelect={onLocationSelect} onAreaSelect={onAreaSelect} />
+            <SearchBar 
+            // onLocationSelect={onLocationSelect} 
+            onAreaSelect={onAreaSelect} 
+            />
             
             {/* Filter Toggle Button */}
             <button

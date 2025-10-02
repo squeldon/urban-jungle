@@ -7,7 +7,7 @@ import { convertOSMToSearchAreaResult } from '@/lib/geographic';
 interface LocationSearchInputProps {
   value: string;
   onChange: (value: string) => void;
-  onLocationSelect?: (lat: number, lng: number, name: string) => void;
+  // onLocationSelect?: (lat: number, lng: number, name: string) => void;
   onAreaSelect?: (area: SearchAreaResult) => void;
   placeholder?: string;
   className?: string;
@@ -18,7 +18,7 @@ interface LocationSearchInputProps {
 export function LocationSearchInput({ 
   value, 
   onChange, 
-  onLocationSelect,
+  // onLocationSelect,
   onAreaSelect,
   placeholder = "Search location",
   className = "",
@@ -167,7 +167,7 @@ export function LocationSearchInput({
     setSelectedIndex(-1);
     setLastSearchQuery(''); // Clear since we're closing results
 
-    onLocationSelect?.(result.y, result.x, result.label);
+    // onLocationSelect?.(result.y, result.x, result.label);
 
     if (onAreaSelect) {
       const searchAreaResult = convertOSMToSearchAreaResult(result.raw, value);

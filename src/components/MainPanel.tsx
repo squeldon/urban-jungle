@@ -10,12 +10,13 @@ interface MainPanelProps {
   activeFiltersCount: number;
   squareSize: number;
   filters?: ListingFilters;
+  onSquareSizeChange: (size: number) => void;
   mapCenter?: [number, number] | null;
   mapOverlays?: MapOverlay[];
   onOverlayClick?: (overlay: MapOverlay) => void;
 }
 
-export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, mapCenter, mapOverlays, onOverlayClick }: MainPanelProps) {
+export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, onSquareSizeChange, mapCenter, mapOverlays, onOverlayClick }: MainPanelProps) {
   const [headerHeight, setHeaderHeight] = useState(80); // Default fallback
 
   // Dynamically measure header height
@@ -43,12 +44,16 @@ export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize
   }, [activeFiltersCount]); // Re-run when filter state changes
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full"
+      style={{
+        top: `${headerHeight}px`,
+      }}
+    >
       {/* Listings Panel - main content that will scroll with the page */}
       <ListingsPanel
         isMapOpen={showMapPanel}
         squareSize={squareSize}
-        headerHeight={headerHeight}
+        onSquareSizeChange={onSquareSizeChange}
         filters={filters}
       />
 

@@ -147,7 +147,6 @@ export default function Home() {
         showMapPanel={showMapPanel}
         activeFilters={getActiveFilters()}
         filters={filters}
-        squareSize={squareSize}
         onUserIconClick={handleUserIconClick}
         onLoginOption={handleLoginOption}
         onToggleFilter={toggleFilterPopup}
@@ -156,7 +155,6 @@ export default function Home() {
         onUpdateFilter={updateFilter}
         onToggleArrayFilter={toggleArrayFilter}
         onLogout={handleLogout}
-        onSquareSizeChange={setSquareSize}
         // onLocationSelect={handleLocationSelect}
         onAreaSelect={handleAreaSelect}
       />
@@ -186,6 +184,7 @@ export default function Home() {
           mapCenter={mapCenter}
           mapOverlays={mapOverlays}
           onOverlayClick={handleOverlayClick}
+          onSquareSizeChange={setSquareSize}
         />
       </main>
     </div>

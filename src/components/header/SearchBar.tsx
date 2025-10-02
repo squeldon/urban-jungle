@@ -4,18 +4,18 @@ import { LocationSearchInput } from '@/components/ui/LocationSearchInput';
 import { SearchAreaResult } from '@/types/map';
 
 interface SearchBarProps {
-  onLocationSelect: (lat: number, lng: number, name: string) => void;
+  // onLocationSelect: (lat: number, lng: number, name: string) => void;
   onAreaSelect?: (area: SearchAreaResult) => void;
 }
 
-export default function SearchBar({ onLocationSelect, onAreaSelect }: SearchBarProps) {
+export default function SearchBar({ onAreaSelect }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <LocationSearchInput
       value={searchQuery}
       onChange={setSearchQuery}
-      onLocationSelect={onLocationSelect}
+      // onLocationSelect={onLocationSelect}
       onAreaSelect={onAreaSelect}
       placeholder="Search location"
       className="flex-1"

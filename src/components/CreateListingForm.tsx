@@ -217,20 +217,27 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
     if (!scrollContainer || !header) return;
 
     const handleScroll = () => {
-      const headerHeight = header.offsetHeight;
-      const scrollTop = scrollContainer.scrollTop;
-      const containerTop = scrollContainer.getBoundingClientRect().top;
+      // Get the bottom of the header - this is where we want to measure from
+      const headerBottom = header.getBoundingClientRect().bottom;
       
       let closestSection = sections[0].id;
       let closestDistance = Infinity;
 
       sections.forEach((section) => {
         if (section.ref.current) {
-          const sectionTop = section.ref.current.getBoundingClientRect().top - containerTop;
-          const distanceFromTop = Math.abs(sectionTop - headerHeight);
+          // Get the top position of this section relative to viewport
+          const sectionTop = section.ref.current.getBoundingClientRect().top;
           
-          if (distanceFromTop < closestDistance) {
-            closestDistance = distanceFromTop;
+          // Calculate distance from the header bottom
+          // Positive means section is below header, negative means it's above
+          const distanceFromHeaderBottom = sectionTop - headerBottom;
+          
+          // We want the section that's closest to the header bottom
+          // Prefer sections that are visible (at or just below the header)
+          const distance = Math.abs(distanceFromHeaderBottom);
+          
+          if (distance < closestDistance) {
+            closestDistance = distance;
             closestSection = section.id;
           }
         }

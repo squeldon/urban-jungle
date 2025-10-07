@@ -11,7 +11,7 @@ import {
   isVideoFile, 
   getFileTypeFromUrl,
   isSupabaseStorageUrl 
-} from '@/supabase/storage';
+} from '@/lib/db/media';
 
 interface ImageUploadSectionProps {
   formData: CreateListingData;

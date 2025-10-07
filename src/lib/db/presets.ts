@@ -1,6 +1,5 @@
 /**
  * Supabase implementation for listing presets data access
- * Maintains identical API to Firestore version for seamless migration
  */
 
 import { supabase } from '@/supabase/client';

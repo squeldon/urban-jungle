@@ -13,14 +13,14 @@ import { PresetBubbles, SavePresetModal, ConfirmOverrideModal } from './presets'
 import { Info, Save } from 'lucide-react';
 
 // Form section components
-import { BasicInfoSection } from './forms/BasicInfoSection';
-import { PricingAnalysisSection } from './forms/PricingAnalysisSection';
-import { AddressSection } from './forms/AddressSection';
-import { DealTermsSection } from './forms/DealTermsSection';
-import { PropertyFeaturesSection } from './forms/PropertyFeaturesSection';
-import { ContactInfoSection } from './forms/ContactInfoSection';
-import { ImageUploadSection } from './forms/ImageUploadSection';
-import { CompsSection } from './forms/CompsSection';
+import { BasicInfoSection } from './sections/BasicInfoSection';
+import { PricingAnalysisSection } from './sections/PricingAnalysisSection';
+import { AddressSection } from './sections/AddressSection';
+import { DealTermsSection } from './sections/DealTermsSection';
+import { PropertyFeaturesSection } from './sections/PropertyFeaturesSection';
+import { ContactInfoSection } from './sections/ContactInfoSection';
+import { ImageUploadSection } from './sections/ImageUploadSection';
+import { CompsSection } from './sections/CompsSection';
 
 interface CreateListingFormProps {
   isOpen: boolean;

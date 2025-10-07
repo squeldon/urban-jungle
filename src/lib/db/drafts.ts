@@ -6,7 +6,7 @@
 import { supabase } from '@/supabase/client';
 import { PropertyDraft, CreateDraftData, UpdateDraftData, CreateListingData } from '@/types/listing';
 import { createListing } from './listings';
-import { deleteMultipleFiles, isSupabaseStorageUrl } from '@/supabase/storage';
+import { deleteMultipleFiles, isSupabaseStorageUrl } from '@/lib/db/media';
 
 // Helper to convert database row to PropertyDraft
 const convertToDraft = (row: any): PropertyDraft => {

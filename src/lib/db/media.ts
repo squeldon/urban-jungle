@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase } from '../../supabase/client';
 import { canUploadFile, recordFileUpload, recordFileDeletion } from '@/lib/db/userQuotas';
 import { recordMediaUpload, recordMediaDeletion } from '@/lib/db/listingMedia';
 

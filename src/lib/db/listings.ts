@@ -5,7 +5,7 @@
 
 import { supabase } from '@/supabase/client';
 import { PropertyListing, CreateListingData, UpdateListingData, ListingFilters } from '@/types/listing';
-import { deleteMultipleFiles, isSupabaseStorageUrl } from '@/supabase/storage';
+import { deleteMultipleFiles, isSupabaseStorageUrl } from '@/lib/db/media';
 
 // Helper to fetch favorites for listings
 const fetchFavoritesForListings = async (listings: any[]): Promise<PropertyListing[]> => {

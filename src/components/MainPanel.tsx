@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import ListingsPanel from './listings/ListingsPanel';
-import MapPanel from './MapPanel';
+import MapPanel from './map/MapPanel';
 import { ListingFilters } from '@/types/listing';
 import { MapOverlay } from '@/types/map';
 

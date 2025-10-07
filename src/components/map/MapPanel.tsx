@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { MapOverlay } from '@/types/map';
-import { BaseMap, BaseMapRef } from '@/components/ui/BaseMap';
+import { BaseMap, BaseMapRef } from '@/components/map/BaseMap';
 
 interface MapPanelProps {
   isOpen: boolean;

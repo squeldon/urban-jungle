@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/context/AuthContext';
 import { PropertyListing } from '@/types/listing';
 import { getListing, toggleFavorite, incrementViewCount } from '@/lib/db/listings';
-import { getFileTypeFromUrl } from '@/supabase/storage';
+import { getFileTypeFromUrl } from '@/lib/db/media';
 import { ArrowLeft, Heart, Eye, MapPin, Calendar, User, Phone, Mail, Building, DollarSign, Wrench, TrendingUp, Home, Bed, Bath, Square, Fence, Star, ChevronLeft, ChevronRight, X, ZoomIn, Play } from 'lucide-react';
 
 interface ListingDetailPageProps {

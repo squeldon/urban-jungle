@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import ListingsPanel from './listings/ListingsPanel';
 import MapPanel from './map/MapPanel';
-import { ListingFilters } from '@/types/listing';
+import { ListingFilters, PropertyListing } from '@/types/listing';
 import { MapOverlay } from '@/types/map';
 
 interface MainPanelProps {
@@ -14,10 +14,11 @@ interface MainPanelProps {
   mapCenter?: [number, number] | null;
   mapZoom?: number;
   mapOverlays?: MapOverlay[];
+  listings?: PropertyListing[];
   onOverlayClick?: (overlay: MapOverlay) => void;
 }
 
-export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, onSquareSizeChange, mapCenter, mapZoom, mapOverlays, onOverlayClick }: MainPanelProps) {
+export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize, filters, onSquareSizeChange, mapCenter, mapZoom, mapOverlays, listings, onOverlayClick }: MainPanelProps) {
   const [headerHeight, setHeaderHeight] = useState(80); // Default fallback
 
   // Dynamically measure header height
@@ -50,7 +51,7 @@ export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize
         top: `${headerHeight}px`,
       }}
     >
-      {/* Listings Panel - main content that will scroll with the page */}
+      {/* Listings Panel - main content */}
       <ListingsPanel
         isMapOpen={showMapPanel}
         squareSize={squareSize}
@@ -66,6 +67,7 @@ export default function MainPanel({ showMapPanel, activeFiltersCount, squareSize
         mapCenter={mapCenter}
         mapZoom={mapZoom}
         overlays={mapOverlays}
+        listings={listings}
         onOverlayClick={onOverlayClick}
       />
     </div>

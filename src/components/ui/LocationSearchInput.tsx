@@ -18,7 +18,6 @@ interface LocationSearchInputProps {
 export function LocationSearchInput({ 
   value, 
   onChange, 
-  // onLocationSelect,
   onAreaSelect,
   placeholder = "Search location",
   className = "",
@@ -38,7 +37,7 @@ export function LocationSearchInput({
   // Create provider with proper User-Agent and polygon data request
   const provider = useRef(new OpenStreetMapProvider({
     params: {
-      'User-Agent': 'Urban Jungle Real Estate App (contact: your-email@example.com)',
+      'User-Agent': 'Urban Jungle',
       format: 'json',
       addressdetails: 1,
       extratags: 1,

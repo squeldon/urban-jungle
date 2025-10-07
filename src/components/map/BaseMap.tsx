@@ -1,8 +1,18 @@
 'use client'
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import dynamic from 'next/dynamic';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapOverlay } from '@/types/map';
+import { MapOverlay, PolygonOverlay, CircleOverlay, RectangleOverlay } from '@/types/map';
+
+// Fix Leaflet's default icon issue with Next.js
+// This is necessary because Leaflet's default icon paths don't work with webpack/Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 // Dynamically import map components to avoid SSR issues
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -11,6 +21,8 @@ const ScaleControl = dynamic(() => import('react-leaflet').then(mod => mod.Scale
 const Polygon = dynamic(() => import('react-leaflet').then(mod => mod.Polygon), { ssr: false });
 const Circle = dynamic(() => import('react-leaflet').then(mod => mod.Circle), { ssr: false });
 const Rectangle = dynamic(() => import('react-leaflet').then(mod => mod.Rectangle), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const Tooltip = dynamic(() => import('react-leaflet').then(mod => mod.Tooltip), { ssr: false });
 
 interface BaseMapProps {
   center?: [number, number];
@@ -117,6 +129,12 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
         maxLat = Math.max(maxLat, lat1, lat2);
         minLng = Math.min(minLng, lng1, lng2);
         maxLng = Math.max(maxLng, lng1, lng2);
+      } else if (overlay.type === 'marker') {
+        const [lat, lng] = overlay.position;
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
       }
     });
 
@@ -133,8 +151,8 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
     onOverlayClick?.(overlay);
   };
 
-  // Default overlay styles
-  const getOverlayStyle = (overlay: MapOverlay) => ({
+  // Default overlay styles (only for shape overlays, not markers)
+  const getOverlayStyle = (overlay: PolygonOverlay | CircleOverlay | RectangleOverlay) => ({
     color: overlay.style?.color || '#3B82F6',
     fillColor: overlay.style?.fillColor || '#3B82F6',
     fillOpacity: overlay.style?.fillOpacity || 0.2,
@@ -144,15 +162,13 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
 
   // Render overlay based on type
   const renderOverlay = (overlay: MapOverlay) => {
-    const style = getOverlayStyle(overlay);
-    
     switch (overlay.type) {
       case 'polygon':
         return (
           <Polygon
             key={overlay.id}
             positions={overlay.coordinates}
-            pathOptions={style}
+            pathOptions={getOverlayStyle(overlay)}
             eventHandlers={{
               click: () => handleOverlayClick(overlay),
             }}
@@ -165,7 +181,7 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
             key={overlay.id}
             center={overlay.center}
             radius={overlay.radius}
-            pathOptions={style}
+            pathOptions={getOverlayStyle(overlay)}
             eventHandlers={{
               click: () => handleOverlayClick(overlay),
             }}
@@ -177,11 +193,36 @@ export const BaseMap = forwardRef<BaseMapRef, BaseMapProps>(({
           <Rectangle
             key={overlay.id}
             bounds={overlay.bounds}
-            pathOptions={style}
+            pathOptions={getOverlayStyle(overlay)}
             eventHandlers={{
               click: () => handleOverlayClick(overlay),
             }}
           />
+        );
+      
+      case 'marker':
+        return (
+          <Marker
+            key={overlay.id}
+            position={overlay.position}
+            eventHandlers={{
+              click: () => handleOverlayClick(overlay),
+            }}
+          >
+            {overlay.data && (
+              <Tooltip direction="top" offset={[0, -20]} opacity={0.9}>
+                <div className="text-sm">
+                  <h3 className="font-semibold">{overlay.name}</h3>
+                  {overlay.data.price && (
+                    <p className="text-gray-600">${overlay.data.price.toLocaleString()}</p>
+                  )}
+                  {overlay.data.address && (
+                    <p className="text-xs text-gray-500">{overlay.data.address}</p>
+                  )}
+                </div>
+              </Tooltip>
+            )}
+          </Marker>
         );
       
       default:

@@ -51,7 +51,15 @@ export interface RectangleOverlay {
   };
 }
 
-export type MapOverlay = PolygonOverlay | CircleOverlay | RectangleOverlay;
+export interface MarkerOverlay {
+  type: 'marker';
+  id: string;
+  name: string;
+  position: [number, number]; // [lat, lng]
+  data?: any; // Optional data associated with the marker (e.g., listing details)
+}
+
+export type MapOverlay = PolygonOverlay | CircleOverlay | RectangleOverlay | MarkerOverlay;
 
 export interface SearchResultAddress {
   houseNumber?: string;

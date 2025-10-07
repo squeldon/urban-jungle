@@ -4,6 +4,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import signOut from '@/supabase/auth/signOut';
 import { useFilters } from '@/hooks/useFilters';
+import { useListings } from '@/hooks/useListings';
 import { ListingFilters } from '@/types/listing';
 import Header from '@/components/header/Header';
 import FilterPopup from '@/components/filters/FilterPopup';
@@ -142,8 +143,13 @@ export default function Home() {
   };
 
   const handleOverlayClick = (overlay: MapOverlay) => {
-    // Optional: Handle clicks on map overlays (e.g., show details)
+    // Handle clicks on map overlays
     console.log('Overlay clicked:', overlay.name);
+    
+    // If it's a listing marker, navigate to the listing detail page
+    if (overlay.type === 'marker' && overlay.data?.listingId) {
+      router.push(`/listings/${overlay.data.listingId}`);
+    }
   };
 
   // Combine regular filters with location filter
@@ -158,6 +164,9 @@ export default function Home() {
     
     return listingFilters;
   }, [listingFilters, locationFilter]);
+
+  // Fetch listings using the combined filters
+  const { listings } = useListings(combinedFilters);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -204,6 +213,7 @@ export default function Home() {
           mapCenter={mapCenter}
           mapZoom={mapZoom}
           mapOverlays={mapOverlays}
+          listings={listings}
           onOverlayClick={handleOverlayClick}
           onSquareSizeChange={setSquareSize}
         />

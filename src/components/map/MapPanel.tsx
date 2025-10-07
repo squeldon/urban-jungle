@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import 'leaflet/dist/leaflet.css';
-import { MapOverlay } from '@/types/map';
+import { MapOverlay, MarkerOverlay } from '@/types/map';
+import { PropertyListing } from '@/types/listing';
 import { BaseMap, BaseMapRef } from '@/components/map/BaseMap';
 
 interface MapPanelProps {
@@ -11,14 +12,38 @@ interface MapPanelProps {
   mapCenter?: [number, number] | null;
   mapZoom?: number;
   overlays?: MapOverlay[];
+  listings?: PropertyListing[];
   onOverlayClick?: (overlay: MapOverlay) => void;
 }
 
-export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight, mapCenter, mapZoom = 13, overlays = [], onOverlayClick }: MapPanelProps) {
+export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeight, mapCenter, mapZoom = 13, overlays = [], listings = [], onOverlayClick }: MapPanelProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentCenter, setCurrentCenter] = useState<[number, number]>([39.2904, -76.6122]); // Default to Baltimore
   const [currentZoom, setCurrentZoom] = useState<number>(mapZoom);
   const baseMapRef = useRef<BaseMapRef>(null);
+
+  // Convert listings to marker overlays
+  const listingMarkers = useMemo<MarkerOverlay[]>(() => {
+    return listings
+      .filter(listing => listing.coordinates?.lat && listing.coordinates?.lng)
+      .map(listing => ({
+        type: 'marker' as const,
+        id: `listing-${listing.id}`,
+        name: listing.title,
+        position: [listing.coordinates!.lat, listing.coordinates!.lng] as [number, number],
+        data: {
+          listingId: listing.id,
+          price: listing.price,
+          address: `${listing.address.street}, ${listing.address.city}, ${listing.address.state}`,
+          propertyType: listing.propertyType,
+        }
+      }));
+  }, [listings]);
+
+  // Combine area overlays with listing markers
+  const allOverlays = useMemo<MapOverlay[]>(() => {
+    return [...overlays, ...listingMarkers];
+  }, [overlays, listingMarkers]);
 
   const handleFullscreenToggle = () => {
     setIsFullscreen(!isFullscreen);
@@ -71,7 +96,7 @@ export default function MapPanel({ isOpen, hasActiveFilters = false, headerHeigh
             ref={baseMapRef}
             center={currentCenter}
             zoom={currentZoom}
-            overlays={overlays}
+            overlays={allOverlays}
             onOverlayClick={onOverlayClick}
             className="w-full h-full"
             showScale={true}

@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import signOut from '@/supabase/auth/signOut';
 import { useFilters } from '@/hooks/useFilters';
 import { useListings } from '@/hooks/useListings';
@@ -12,6 +12,8 @@ import AuthPopup from '@/components/auth/AuthPopup';
 import MainPanel from '@/components/MainPanel';
 import { SearchAreaResult, MapOverlay } from '@/types/map';
 import { calculateZoomLevel } from '@/lib/geographic';
+import { locationQueryToURLParams, urlParamsToLocationQuery } from '@/lib/urlState';
+import { LocationSearchInputRef } from '@/components/ui/LocationSearchInput';
 
 export default function Home() {
   const [showAuthPopup, setShowAuthPopup] = useState(false);
@@ -24,8 +26,21 @@ export default function Home() {
   const [mapOverlays, setMapOverlays] = useState<MapOverlay[]>([]);
   const [locationFilter, setLocationFilter] = useState<ListingFilters['location'] | null>(null);
   
+  const searchBarRef = useRef<LocationSearchInputRef>(null);
   const { user } = useAuthContext() as { user: any };
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  
+  // Initialize locationQuery and loading state from URL
+  const [locationQuery, setLocationQuery] = useState<string | undefined>(() => {
+    return urlParamsToLocationQuery(searchParams) || undefined;
+  });
+  const [isLocationInitialized, setIsLocationInitialized] = useState(false);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(() => {
+    // If there's a location query in URL on mount, we'll be searching for it
+    return !!urlParamsToLocationQuery(searchParams);
+  });
   
   // Use the custom filter hook
   const {
@@ -38,6 +53,13 @@ export default function Home() {
     listingFilters,
     replaceFilters,
   } = useFilters();
+
+  // Mark as initialized when there's no location query in URL
+  useEffect(() => {
+    if (!isLocationInitialized && !locationQuery) {
+      setIsLocationInitialized(true);
+    }
+  }, [isLocationInitialized, locationQuery]);
 
   // Check authentication status on component mount and user changes
   useEffect(() => {
@@ -85,7 +107,7 @@ export default function Home() {
   //   }
   // };
 
-  const handleAreaSelect = (area: SearchAreaResult) => {
+  const handleAreaSelect = useCallback((area: SearchAreaResult, fullLocationName?: string) => {
     // Set map center to the area center
     setMapCenter(area.center);
 
@@ -135,12 +157,30 @@ export default function Home() {
     }
     
     setLocationFilter(newLocationFilter);
+    // Store the full OSM display name (e.g., "Reisterstown, Baltimore County, Maryland, 21136, United States")
+    const locationNameToStore = fullLocationName || area.name;
+    setLocationQuery(locationNameToStore);
     
-    // Auto-open map panel when area is selected
-    // if (!showMapPanel) {
-    //   setShowMapPanel(true);
-    // }
-  };
+    // Update URL with ONLY the full location display name (no coords or map state)
+    const locationParams = locationQueryToURLParams(locationNameToStore);
+    
+    const params = new URLSearchParams(searchParams);
+    
+    // Remove old location-related params if they exist
+    const oldLocationKeys = ['location', 'locationName', 'bounds', 'radius', 'mapLat', 'mapLng', 'mapZoom'];
+    oldLocationKeys.forEach(key => params.delete(key));
+    
+    // Add the new location query
+    Object.entries(locationParams).forEach(([key, value]) => {
+      params.set(key, value);
+    });
+    
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    
+    // Mark location as initialized and not searching anymore
+    setIsLocationInitialized(true);
+    setIsSearchingLocation(false);
+  }, [searchParams, pathname, router]);
 
   const handleOverlayClick = (overlay: MapOverlay) => {
     // Handle clicks on map overlays
@@ -152,8 +192,29 @@ export default function Home() {
     }
   };
 
+  const clearLocationFilter = useCallback(() => {
+    setLocationFilter(null);
+    setLocationQuery(undefined);
+    setMapOverlays([]);
+    
+    // Remove location-related params from URL
+    const params = new URLSearchParams(searchParams);
+    const locationKeys = ['locationQuery', 'location', 'locationName', 'bounds', 'radius', 'mapLat', 'mapLng', 'mapZoom'];
+    locationKeys.forEach(key => params.delete(key));
+    
+    const queryString = params.toString();
+    const newURL = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(newURL, { scroll: false });
+  }, [searchParams, pathname, router]);
+
   // Combine regular filters with location filter
   const combinedFilters = useMemo(() => {
+    // If we're still searching for location, don't apply any filters yet
+    // This prevents UI jitter from showing listings with incomplete filters
+    if (isSearchingLocation) {
+      return undefined;
+    }
+    
     // If we have a location filter, merge it with base filters
     if (locationFilter && (locationFilter.polygon || locationFilter.bounds || locationFilter.center)) {
       return {
@@ -163,7 +224,7 @@ export default function Home() {
     }
     
     return listingFilters;
-  }, [listingFilters, locationFilter]);
+  }, [listingFilters, locationFilter, isSearchingLocation]);
 
   // Fetch listings using the combined filters
   const { listings } = useListings(combinedFilters);
@@ -184,8 +245,9 @@ export default function Home() {
         onUpdateFilter={updateFilter}
         onToggleArrayFilter={toggleArrayFilter}
         onLogout={handleLogout}
-        // onLocationSelect={handleLocationSelect}
         onAreaSelect={handleAreaSelect}
+        searchBarRef={searchBarRef}
+        locationQuery={locationQuery}
       />
 
       <AuthPopup 

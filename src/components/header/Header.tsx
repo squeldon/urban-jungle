@@ -21,8 +21,9 @@ interface HeaderProps {
   onUpdateFilter: (key: string, value: any) => void;
   onToggleArrayFilter: (key: string, value: string) => void;
   onLogout: () => void;
-  // onLocationSelect: (lat: number, lng: number, name: string) => void;
-  onAreaSelect?: (area: SearchAreaResult) => void;
+  onAreaSelect?: (area: SearchAreaResult, fullLocationName?: string) => void;
+  searchBarRef?: React.RefObject<any>;
+  locationQuery?: string;
 }
 
 export default function Header({
@@ -39,8 +40,9 @@ export default function Header({
   onUpdateFilter,
   onToggleArrayFilter,
   onLogout,
-  // onLocationSelect,
   onAreaSelect,
+  searchBarRef,
+  locationQuery,
 }: HeaderProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [tempFilters, setTempFilters] = useState<Partial<FilterState>>({});
@@ -128,8 +130,9 @@ export default function Header({
         <div className="flex justify-center flex-[2]">
           <div className="flex items-center gap-2 w-full">
             <SearchBar 
-            // onLocationSelect={onLocationSelect} 
-            onAreaSelect={onAreaSelect} 
+            onAreaSelect={onAreaSelect}
+            ref={searchBarRef}
+            locationQuery={locationQuery}
             />
             
             {/* Filter Toggle Button */}

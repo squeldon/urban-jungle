@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ListingFilters } from '@/types/listing';
+import { filtersToURLParams, urlParamsToFilters, mergeURLParams } from '@/lib/urlState';
 
 export interface FilterState {
   priceMin: string;
@@ -24,8 +26,6 @@ export interface ActiveFilter {
   label: string;
   type: 'range' | 'select' | 'checkbox';
 }
-
-const FILTERS_STORAGE_KEY = 'urban-jungle-filters';
 
 export const getDefaultFilters = (): FilterState => ({
   priceMin: '',
@@ -65,54 +65,50 @@ export const sanitizeFilters = (input: Partial<FilterState>): FilterState => {
   return sanitized;
 };
 
-const loadFiltersFromStorage = (): FilterState => {
-  if (typeof window === 'undefined') {
-    return getDefaultFilters();
-  }
-  
-  try {
-    const stored = localStorage.getItem(FILTERS_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return sanitizeFilters(parsed ?? {});
-    }
-  } catch (error) {
-    console.warn('Error loading filters from localStorage:', error);
-  }
-  
-  return getDefaultFilters();
-};
-
-const saveFiltersToStorage = (filters: FilterState) => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem(
-      FILTERS_STORAGE_KEY,
-      JSON.stringify(sanitizeFilters(filters))
-    );
-  } catch (error) {
-    console.warn('Error saving filters to localStorage:', error);
-  }
-};
-
 export const useFilters = () => {
-  const [filters, setFilters] = useState<FilterState>(getDefaultFilters);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [filters, setFilters] = useState<FilterState>(() => {
+    // Initialize from URL on first render
+    if (typeof window !== 'undefined') {
+      const urlFilters = urlParamsToFilters(searchParams);
+      return sanitizeFilters(urlFilters);
+    }
+    return getDefaultFilters();
+  });
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load filters from localStorage on component mount
+  // Mark as initialized after mount
   useEffect(() => {
-    const loadedFilters = loadFiltersFromStorage();
-    setFilters(loadedFilters);
     setIsInitialized(true);
   }, []);
 
-  // Save filters to localStorage whenever filters change (but not on initial load)
+  // Update URL whenever filters change (but not on initial load)
   useEffect(() => {
     if (isInitialized) {
-      saveFiltersToStorage(filters);
+      // Start with current URL params (to preserve location/map params)
+      const params = new URLSearchParams(searchParams);
+      
+      // Remove all filter-related params first
+      const filterKeys = [
+        'priceMin', 'priceMax', 'arvMin', 'arvMax', 'repairCostsMin', 'repairCostsMax',
+        'propertyTypes', 'bedrooms', 'bathrooms', 'squareFeetMin', 'squareFeetMax',
+        'listingTypes', 'propertyConditions', 'occupancyStatuses', 'financingOptions'
+      ];
+      filterKeys.forEach(key => params.delete(key));
+      
+      // Add back only the active filters
+      const filterParams = filtersToURLParams(filters);
+      filterParams.forEach((value, key) => {
+        params.set(key, value);
+      });
+      
+      const queryString = params.toString();
+      const newURL = queryString ? `${pathname}?${queryString}` : pathname;
+      router.replace(newURL, { scroll: false });
     }
-  }, [filters, isInitialized]);
+  }, [filters, isInitialized, searchParams, pathname, router]);
 
   const updateFilter = (key: string, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -129,19 +125,26 @@ export const useFilters = () => {
 
   const clearFilter = (key: string) => {
     const arrayFilters = ['propertyTypes', 'listingTypes', 'propertyConditions', 'occupancyStatuses', 'financingOptions'];
-    if (arrayFilters.includes(key)) {
-      setFilters((prev) => ({ ...prev, [key]: [] }));
-    } else if (key.includes('price') || key.includes('Price')) {
-      setFilters((prev) => ({ ...prev, priceMin: '', priceMax: '' }));
-    } else if (key.includes('arv') || key.includes('ARV')) {
-      setFilters((prev) => ({ ...prev, arvMin: '', arvMax: '' }));
-    } else if (key.includes('repair') || key.includes('Repair')) {
-      setFilters((prev) => ({ ...prev, repairCostsMin: '', repairCostsMax: '' }));
-    } else if (key.includes('squareFeet') || key.includes('Sqft')) {
-      setFilters((prev) => ({ ...prev, squareFeetMin: '', squareFeetMax: '' }));
-    } else {
-      setFilters((prev) => ({ ...prev, [key]: '' }));
-    }
+    
+    setFilters((prev) => {
+      let updated = { ...prev };
+      
+      if (arrayFilters.includes(key)) {
+        updated = { ...prev, [key]: [] };
+      } else if (key.includes('price') || key.includes('Price')) {
+        updated = { ...prev, priceMin: '', priceMax: '' };
+      } else if (key.includes('arv') || key.includes('ARV')) {
+        updated = { ...prev, arvMin: '', arvMax: '' };
+      } else if (key.includes('repair') || key.includes('Repair')) {
+        updated = { ...prev, repairCostsMin: '', repairCostsMax: '' };
+      } else if (key.includes('squareFeet') || key.includes('Sqft')) {
+        updated = { ...prev, squareFeetMin: '', squareFeetMax: '' };
+      } else {
+        updated = { ...prev, [key]: '' };
+      }
+      
+      return updated;
+    });
   };
 
   const getActiveFilters = (): ActiveFilter[] => {
@@ -230,14 +233,25 @@ export const useFilters = () => {
   const resetAllFilters = () => {
     const defaultFilters = getDefaultFilters();
     setFilters(defaultFilters);
-    // Clear from localStorage as well
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(FILTERS_STORAGE_KEY);
-    }
+    
+    // Clear filter params from URL but keep location/map params
+    const params = new URLSearchParams(searchParams);
+    const filterKeys = [
+      'priceMin', 'priceMax', 'arvMin', 'arvMax', 'repairCostsMin', 'repairCostsMax',
+      'propertyTypes', 'bedrooms', 'bathrooms', 'squareFeetMin', 'squareFeetMax',
+      'listingTypes', 'propertyConditions', 'occupancyStatuses', 'financingOptions'
+    ];
+    
+    filterKeys.forEach(key => params.delete(key));
+    
+    const queryString = params.toString();
+    const newURL = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(newURL, { scroll: false });
   };
   
   const replaceFilters = (nextFilters: FilterState) => {
-    setFilters(sanitizeFilters(nextFilters));
+    const sanitized = sanitizeFilters(nextFilters);
+    setFilters(sanitized);
   };
 
   // Memoize the listing filters to prevent unnecessary re-renders

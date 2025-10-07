@@ -102,6 +102,13 @@ export function useListings(filters?: ListingFilters, pageSize: number = 20): Us
 
   // Load initial data
   useEffect(() => {
+    // Skip loading if filters is explicitly undefined (waiting for location search)
+    if (filters === undefined) {
+      setLoading(true); // Keep in loading state
+      setListings([]); // Clear any existing listings
+      return;
+    }
+    
     lastDocRef.current = undefined; // Reset pagination when filters change
     setHasMore(true);
     loadListings(false);

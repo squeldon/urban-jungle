@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { OpenStreetMapProvider } from 'leaflet-geosearch';
 import { SearchAreaResult } from '@/types/map';
 import { convertOSMToSearchAreaResult } from '@/lib/geographic';
@@ -7,7 +7,6 @@ import { convertOSMToSearchAreaResult } from '@/lib/geographic';
 interface LocationSearchInputProps {
   value: string;
   onChange: (value: string) => void;
-  // onLocationSelect?: (lat: number, lng: number, name: string) => void;
   onAreaSelect?: (area: SearchAreaResult) => void;
   placeholder?: string;
   className?: string;
@@ -15,7 +14,11 @@ interface LocationSearchInputProps {
   showSearchButton?: boolean;
 }
 
-export function LocationSearchInput({ 
+export interface LocationSearchInputRef {
+  triggerSearch: (query: string, autoSelectFirst?: boolean) => void;
+}
+
+export const LocationSearchInput = forwardRef<LocationSearchInputRef, LocationSearchInputProps>(({ 
   value, 
   onChange, 
   onAreaSelect,
@@ -23,7 +26,7 @@ export function LocationSearchInput({
   className = "",
   required = false,
   showSearchButton = false 
-}: LocationSearchInputProps) {
+}, ref) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -47,7 +50,7 @@ export function LocationSearchInput({
   }));
 
   // Rate-limited search function (compliant with 1 req/sec limit)
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (query: string, autoSelectFirst: boolean = false) => {
     if (query.length < 3) {
       setSearchResults([]);
       setShowSearchResults(false);
@@ -59,9 +62,14 @@ export function LocationSearchInput({
     if (searchCache.current.has(cacheKey)) {
       const cachedResults = searchCache.current.get(cacheKey)!;
       setSearchResults(cachedResults);
-      setShowSearchResults(true);
-      setSelectedIndex(cachedResults.length > 0 ? 0 : -1); // Auto-highlight first result
+      setShowSearchResults(!autoSelectFirst); // Hide dropdown if auto-selecting
+      setSelectedIndex(cachedResults.length > 0 ? 0 : -1);
       setLastSearchQuery(query);
+      
+      // Auto-select first result if requested
+      if (autoSelectFirst && cachedResults.length > 0) {
+        handleLocationSelect(cachedResults[0]);
+      }
       return;
     }
 
@@ -73,7 +81,7 @@ export function LocationSearchInput({
     if (timeSinceLastSearch < minInterval) {
       // Wait for the remaining time
       const waitTime = minInterval - timeSinceLastSearch;
-      setTimeout(() => handleSearch(query), waitTime);
+      setTimeout(() => handleSearch(query, autoSelectFirst), waitTime);
       return;
     }
 
@@ -88,9 +96,14 @@ export function LocationSearchInput({
       searchCache.current.set(cacheKey, limitedResults);
       
       setSearchResults(limitedResults);
-      setShowSearchResults(true);
-      setSelectedIndex(limitedResults.length > 0 ? 0 : -1); // Auto-highlight first result
+      setShowSearchResults(!autoSelectFirst); // Hide dropdown if auto-selecting
+      setSelectedIndex(limitedResults.length > 0 ? 0 : -1);
       setLastSearchQuery(query);
+      
+      // Auto-select first result if requested
+      if (autoSelectFirst && limitedResults.length > 0) {
+        handleLocationSelect(limitedResults[0]);
+      }
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
@@ -99,6 +112,13 @@ export function LocationSearchInput({
       setIsSearching(false);
     }
   };
+
+  // Expose triggerSearch method via ref
+  useImperativeHandle(ref, () => ({
+    triggerSearch: (query: string, autoSelectFirst: boolean = false) => {
+      handleSearch(query, autoSelectFirst);
+    }
+  }));
 
   // Handle search form submission (Enter key or search button)
   const handleSearchSubmit = (e?: React.FormEvent | React.MouseEvent) => {
@@ -312,4 +332,6 @@ export function LocationSearchInput({
       )}
     </div>
   );
-}
+});
+
+LocationSearchInput.displayName = 'LocationSearchInput';

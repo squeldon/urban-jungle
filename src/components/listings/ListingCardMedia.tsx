@@ -1,5 +1,5 @@
 import { PropertyListing } from '@/types/listing';
-import { getFileTypeFromUrl } from '@/lib/db/media';
+import { getFileTypeFromUrl } from '@/supabase/media';
 import { ChevronLeft, ChevronRight, Play, Home } from 'lucide-react';
 
 interface ListingCardMediaProps {

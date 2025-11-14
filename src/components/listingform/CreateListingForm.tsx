@@ -190,7 +190,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
   const sections = useMemo(() => [
     { id: 'basic-info', label: 'Basic Info', ref: basicInfoRef },
     { id: 'address', label: 'Address', ref: addressRef },
-    { id: 'images', label: 'Photos & Videos', ref: imagesRef },
+    { id: 'images', label: 'Photos', ref: imagesRef },
     { id: 'pricing', label: 'Pricing & Analysis', ref: pricingRef },
     { id: 'comps', label: 'Comparables', ref: compsRef },
     { id: 'deal-terms', label: 'Deal Terms', ref: dealTermsRef },
@@ -488,7 +488,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
         ...formData.amenities.map(a => a.toLowerCase()),
       ].join(' ').split(' ').filter(tag => tag.length > 2);
 
-      // Clean the form data to remove undefined values (Firebase doesn't accept undefined)
+      // Clean the form data to remove undefined values
       const cleanFormData = cleanObject(formData);
 
       if (isEditMode && editListing) {
@@ -637,7 +637,7 @@ export default function CreateListingForm({ isOpen, onClose, onSuccess, editList
 
               <div ref={imagesRef} className="scroll-mt-6">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
-                  Photos & Videos
+                  Photos
                 </h3>
                 <ImageUploadSection 
                   formData={formData} 

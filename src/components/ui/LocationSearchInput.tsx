@@ -103,11 +103,20 @@ export const LocationSearchInput = forwardRef<LocationSearchInputRef, LocationSe
       // Auto-select first result if requested
       if (autoSelectFirst && limitedResults.length > 0) {
         handleLocationSelect(limitedResults[0]);
+      } else if (autoSelectFirst && limitedResults.length === 0) {
+        // If auto-select was requested but no results found, log warning
+        console.warn('Location search found no results for:', query);
       }
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
       setShowSearchResults(false);
+      
+      // If auto-select was requested and failed, this could leave the app in loading state
+      // The parent component should handle this via timeout
+      if (autoSelectFirst) {
+        console.error('Auto-select location search failed for:', query);
+      }
     } finally {
       setIsSearching(false);
     }

@@ -8,10 +8,9 @@ import {
   uploadMultipleFiles, 
   deleteFile, 
   isImageFile, 
-  isVideoFile, 
   getFileTypeFromUrl,
   isSupabaseStorageUrl 
-} from '@/lib/db/media';
+} from '@/supabase/media';
 
 interface ImageUploadSectionProps {
   formData: CreateListingData;
@@ -45,23 +44,17 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Validate file type - accept both images and videos
-        if (!isImageFile(file) && !isVideoFile(file)) {
-          console.warn(`File ${file.name} is not a supported media type (images or videos only)`);
+        // Validate file type - accept only images
+        if (!isImageFile(file)) {
+          console.warn(`File ${file.name} is not a supported image type`);
           continue;
         }
 
-        // Validate file size - different limits for images vs videos
+        // Validate file size
         const maxImageSize = 10 * 1024 * 1024; // 10MB for images
-        const maxVideoSize = 100 * 1024 * 1024; // 100MB for videos
         
-        if (isImageFile(file) && file.size > maxImageSize) {
-          console.warn(`Image ${file.name} is too large (max 10MB for images)`);
-          continue;
-        }
-        
-        if (isVideoFile(file) && file.size > maxVideoSize) {
-          console.warn(`Video ${file.name} is too large (max 100MB for videos)`);
+        if (file.size > maxImageSize) {
+          console.warn(`Image ${file.name} is too large (max 10MB)`);
           continue;
         }
 
@@ -69,11 +62,11 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
       }
 
       if (validFiles.length === 0) {
-        console.warn('No valid media files to upload');
+        console.warn('No valid image files to upload');
         return;
       }
 
-      // Upload media files to Firebase Storage
+      // Upload images to supabase 
       const uploadedUrls = await uploadMultipleFiles(
         validFiles,
         user.id,
@@ -89,7 +82,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
       console.error('Error uploading images:', error);
       
       // Show user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload media files';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload images';
       alert(`Upload failed: ${errorMessage}`);
     } finally {
       setUploading(false);
@@ -120,27 +113,26 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
     }
   };
 
-  const removeMedia = async (index: number) => {
-    const mediaUrl = formData.images[index];
+  const removeImage = async (index: number) => {
+    const imageUrl = formData.images[index];
     
     // Always remove from form data first to ensure UI updates
     const newImages = formData.images.filter((_, i) => i !== index);
     onImagesChange(newImages);
     
     // If it's a storage URL, delete it from storage
-    if (isSupabaseStorageUrl(mediaUrl)) {
+    if (isSupabaseStorageUrl(imageUrl)) {
       try {
-        const fileType = getFileTypeFromUrl(mediaUrl);
-        console.log(`Removing ${fileType} from storage: ${mediaUrl}`);
-        await deleteFile(mediaUrl, user?.uid);
-        console.log(`${fileType} successfully removed from storage`);
+        console.log(`Removing image from storage: ${imageUrl}`);
+        await deleteFile(imageUrl, user?.uid);
+        console.log(`Image successfully removed from storage`);
       } catch (error) {
-        console.error('Error deleting media from storage:', error);
+        console.error('Error deleting image from storage:', error);
         
         // Show user-friendly error message only for unexpected errors
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         if (!errorMessage.includes('already deleted') && !errorMessage.includes("doesn't exist")) {
-          console.warn(`Failed to delete media from storage: ${errorMessage}`);
+          console.warn(`Failed to delete image from storage: ${errorMessage}`);
           // Don't alert the user for these common cases, just log it
         }
       }
@@ -190,7 +182,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
     <div className="space-y-4">
       <div className="mb-4">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Upload high-quality media of your property. The first image will be used as the cover photo.
+          Upload high-quality images of your property. The first image will be used as the cover photo.
         </p>
       </div>
 
@@ -212,7 +204,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*,video/*"
+          accept="image/*"
           onChange={handleFileInputChange}
           className="hidden"
         />
@@ -228,7 +220,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
           
           {uploading ? (
             <div className="text-gray-600 dark:text-gray-400">
-              <p>Uploading media...</p>
+              <p>Uploading images...</p>
               {uploadProgress.total > 0 && (
                 <p className="text-sm mt-1">
                   {uploadProgress.current} of {uploadProgress.total} uploaded
@@ -238,7 +230,7 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
           ) : (
             <>
               <p className="text-gray-600 dark:text-gray-400 mb-2">
-                Drag and drop photos and videos here, or{' '}
+                Drag and drop photos here, or{' '}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -248,27 +240,24 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
                 </button>
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Images: JPG, PNG, WebP up to 10MB • Videos: MP4, WebM up to 100MB
+                JPG, PNG, WebP up to 10MB
               </p>
             </>
           )}
         </div>
       </div>
 
-      {/* Uploaded Media */}
+      {/* Uploaded Images */}
       {formData.images.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900 dark:text-white">Uploaded Media</h4>
+            <h4 className="font-medium text-gray-900 dark:text-white">Uploaded Images</h4>
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              {formData.images.length} files
+              {formData.images.length} {formData.images.length === 1 ? 'image' : 'images'}
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {formData.images.map((mediaUrl, index) => {
-              const fileType = getFileTypeFromUrl(mediaUrl);
-              const isVideo = fileType === 'video';
-              
+            {formData.images.map((imageUrl, index) => {
               return (
                 <div 
                   key={index} 
@@ -285,53 +274,25 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
                   onDrop={(e) => handlePhotoDrop(e, index)}
                 >
                   <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                    {isVideo ? (
-                      <video
-                        src={mediaUrl}
-                        className="w-full h-full object-cover"
-                        draggable={false}
-                        muted
-                        preload="metadata"
-                      />
-                    ) : (
-                      <img
-                        src={mediaUrl}
-                        alt={`Property media ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        draggable={false}
-                      />
-                    )}
-                    
-                    {/* Video indicator */}
-                    {isVideo && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-black/60 rounded-full p-3">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8 5v10l7-5-7-5z"/>
-                          </svg>
-                        </div>
-                      </div>
-                    )}
+                    <img
+                      src={imageUrl}
+                      alt={`Property image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      draggable={false}
+                    />
                   </div>
                 
-                {/* Cover Media Badge */}
+                {/* Cover Photo Badge */}
                 {index === 0 && (
                   <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 text-xs rounded">
-                    Cover {isVideo ? 'Video' : 'Photo'}
-                  </div>
-                )}
-                
-                {/* File Type Badge */}
-                {isVideo && index !== 0 && (
-                  <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 text-xs rounded">
-                    Video
+                    Cover Photo
                   </div>
                 )}
 
                 {/* Remove Button */}
                 <button
                   type="button"
-                  onClick={() => removeMedia(index)}
+                  onClick={() => removeImage(index)}
                   className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                   disabled={uploading}
                 >
@@ -377,9 +338,9 @@ export function ImageUploadSection({ formData, onImagesChange }: ImageUploadSect
 
           {/* Instructions */}
           <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-            <p>• The first media file will be used as the cover on listing cards</p>
-            <p>• Drag and drop to reorder media, or use the arrow buttons</p>
-            <p>• Click the X button to remove unwanted media</p>
+            <p>• The first image will be used as the cover on listing cards</p>
+            <p>• Drag and drop to reorder images, or use the arrow buttons</p>
+            <p>• Click the X button to remove unwanted images</p>
           </div>
         </div>
       )}

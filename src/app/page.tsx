@@ -54,12 +54,37 @@ export default function Home() {
     replaceFilters,
   } = useFilters();
 
-  // Mark as initialized when there's no location query in URL
+  // Handle location initialization from URL or mark as ready
   useEffect(() => {
     if (!isLocationInitialized && !locationQuery) {
       setIsLocationInitialized(true);
+      setIsSearchingLocation(false);
     }
   }, [isLocationInitialized, locationQuery]);
+
+  // Auto-trigger search if we have a locationQuery from URL on mount
+  useEffect(() => {
+    if (locationQuery && isSearchingLocation && !isLocationInitialized) {
+      // Try to trigger search via the search bar ref
+      if (searchBarRef.current) {
+        console.log('Auto-triggering location search for:', locationQuery);
+        searchBarRef.current.triggerSearch(locationQuery, true);
+      } else {
+        // If ref is not ready yet, wait a bit and try again
+        const timer = setTimeout(() => {
+          if (searchBarRef.current) {
+            console.log('Auto-triggering location search (delayed) for:', locationQuery);
+            searchBarRef.current.triggerSearch(locationQuery, true);
+          } else {
+            // If still no ref after delay, just mark as not searching to unblock the UI
+            console.warn('Could not trigger location search, unblocking UI');
+            setIsSearchingLocation(false);
+          }
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [locationQuery, isSearchingLocation, isLocationInitialized]);
 
   // Check authentication status on component mount and user changes
   useEffect(() => {
@@ -196,6 +221,7 @@ export default function Home() {
     setLocationFilter(null);
     setLocationQuery(undefined);
     setMapOverlays([]);
+    setIsSearchingLocation(false); // Ensure we're not stuck in searching state
     
     // Remove location-related params from URL
     const params = new URLSearchParams(searchParams);
@@ -223,7 +249,9 @@ export default function Home() {
       };
     }
     
-    return listingFilters;
+    // Return listingFilters if it exists, otherwise return empty object (fetch all listings)
+    // Empty object means "no filters" which is different from undefined (don't fetch)
+    return listingFilters ?? {};
   }, [listingFilters, locationFilter, isSearchingLocation]);
 
   // Fetch listings using the combined filters

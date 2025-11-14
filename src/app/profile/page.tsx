@@ -5,7 +5,7 @@ import { useUserListings } from "@/hooks/useListings";
 import { useRouter } from "next/navigation";
 import CreateListingForm from "@/components/listingform/CreateListingForm";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import { Plus, Home, Eye, Heart, Edit, Trash2, X, FileText, Upload } from 'lucide-react';
+import { Plus, Home, Eye, Heart, Edit, Trash2, X, FileText, Upload, ArrowLeft } from 'lucide-react';
 import { PropertyListing, PropertyDraft } from "@/types/listing";
 import { useDrafts } from "@/hooks/useDrafts";
 
@@ -171,13 +171,22 @@ function Page() {
                 Welcome back, {user.displayName || user.email}
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Create Listing
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/')}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back to Homepage
+              </button>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                Create Listing
+              </button>
+            </div>
           </div>
 
           {/* Tab Navigation */}
